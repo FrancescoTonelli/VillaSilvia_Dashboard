@@ -1,0 +1,70 @@
+Java
+Vertx
+Pi4j
+javaFx
+jsonOBJ
+cec
+mosquitto
+
+Ffmpeg
+Samba
+Systemctl
+Lnxterminal
+
+
+
+-PER EVITARE GLI STANDBY AUTOMATICI
+
+xset s off
+xset -dpms
+xset s noblank
+
+Per riattivarlo :
+
+xset s on 
+xset +dpms 
+xset s blank
+
+nano ~/.config/lxsession/LXDE-pi/autostart
+
+lxpanel --profile LXDE-pi
+pcmanfm --desktop --profile LXDE-pi
+xscreensaver -no-splash
+sh -c "sleep 5 && xset s off"
+sh -c "sleep 5 && xset -dpms"
+sh -c "sleep 5 && xset s noblank"
+
+
+#!/bin/bash
+sleep 10
+xset s off
+xset -dpms
+xset s noblank
+
+-CONTROLLO HDMI-CEC PER MONITORARE LE TV
+
+sudo apt install cec-utils
+
+echo 'on 0' | cec-client -s -d 1
+echo 'standby 0' | cec-client -s -d 1
+echo 'as' | cec-client -s -d 1
+
+
+-DISABILITARE NOTIFICA USB
+
+nano ~/.config/pcmanfm/LXDE-pi/pcmanfm.conf
+
+[volume]
+mount_on_insert=0
+mount_removable=0
+
+pcmanfm --reconfigure
+
+
+
+
+
+
+
+
+

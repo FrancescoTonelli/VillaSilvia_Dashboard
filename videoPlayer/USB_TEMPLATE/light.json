@@ -1,0 +1,12 @@
+[
+    {
+        "id": "shelly-disco",
+        "delay": 70,
+        "offAfter": 79
+    },
+    {
+        "id": "shelly-grammofono",
+        "delay": 80,
+        "offAfter": 147
+    }
+]
