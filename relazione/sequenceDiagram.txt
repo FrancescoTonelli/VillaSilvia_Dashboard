@@ -1,0 +1,59 @@
+@startuml
+actor Guida
+
+participant BrokerMQTT as Broker
+participant "Generic Shelly Plug" as Shelly
+participant "Plafoniere" as Luci
+participant "Raspberry-mp3" as Audio
+participant "Stazione 1" as S1
+participant "Stazione 2" as S2
+participant "Stazione 3" as S3
+participant "Stazione 4" as S4
+
+
+== Avvio Stazione 1 ==
+Guida -> S1 : trigger Sonar
+S1 -> Broker : publish("stazione/1/triggered")
+Broker -> Luci : setBrightness(50)
+Broker -> Audio : setVolume(50)
+S1 -> S1 : wait 3s
+S1 -> S1 : playVideo()
+
+
+== Fine video S1 ==
+S1 -> Broker : publish("stazione/1/ended")
+S1 -> S1 : autoDestruction()
+
+== Avvio Stazione 2 ==
+Broker -> S2 : accensione (via MQTT)
+Guida -> S2 : trigger Sonar
+S2 -> S2 : playVideo()
+S2 -> Broker : publish("stazione/2/triggered")
+Broker -> Broker : on timer (es. 5s)
+Broker -> Shelly : on()
+Broker -> Broker :  off timer (es. 20s)
+Broker -> Shelly : off()
+
+
+== Fine video S2 ==
+S2 -> Broker : publish("stazione/2/ended")
+S2 -> S2 : autoDestruction()
+
+
+== Stazione 3 ==
+Broker -> S3 : accensione (via MQTT)
+S3 -> Broker : publish("stazione/3/triggered")
+Broker -> S3 : playVideo()
+S3 -> Broker : publish("stazione/4/start")
+
+== Stazione 4 ==
+Broker -> S4 : accensione
+S4 -> Broker : publish("stazione/4/triggered")
+Broker -> S4 : playVideo()
+
+
+== Fine stazione 4 ==
+S4 -> Broker : publish("stazioni/fine")
+Broker -> Luci : setBrightness(100)
+Broker -> Audio : setVolume(100)
+@enduml

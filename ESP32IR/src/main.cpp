@@ -104,7 +104,22 @@ void reconnect()
     if (client.connect("ESP32Client"))
     {
       Serial.println("connesso");
-      client.subscribe("smartroom/plafoniera");
+
+      // Iscrizione al topic di controllo
+      client.subscribe("smartroom/plafoniera/luminosità");
+
+      // === Invio messaggio JSON al topic smartroom/plafoniera/data ===
+      StaticJsonDocument<200> doc;
+      doc["online"] = true;
+      doc["deviceId"] = "plafoniera";
+      doc["ip"] = WiFi.localIP().toString();
+      doc["timestamp"] = millis(); // tempo dal boot in ms
+
+      char buffer[256];
+      size_t n = serializeJson(doc, buffer);
+      client.publish("smartroom/plafoniera/data", buffer, n);
+
+      Serial.println("Messaggio di connessione inviato");
     }
     else
     {

@@ -1,0 +1,22 @@
+SAMBA
+sudo apt install samba samba-common-bin
+
+sudo nano /etc/samba/smb.conf
+
+[Condivisa]
+   path = /home/pi/condivisa
+   browseable = yes
+   writeable = yes
+   guest ok = yes
+   public = yes
+   create mask = 0777
+   directory mask = 0777
+   force user = villasilvia
+
+sudo systemctl restart smbd
+
+JAVA
+sudo apt install openjdk-17-jdk
+
+MVN
+sudo apt install maven

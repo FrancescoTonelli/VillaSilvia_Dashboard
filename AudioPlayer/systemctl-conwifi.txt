@@ -1,0 +1,29 @@
+[Unit]
+Description=Servizio MQTT Audio Client con gestione connessione Wi-Fi
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=villasilvia
+WorkingDirectory=/home/villasilvia/Desktop/condivisa/audioPlayer
+ExecStartPre=/bin/bash -c '
+SSID="SmartRoomNet";
+until iwgetid -r | grep -q "$SSID"; do
+    echo "[WiFi] Non connesso a $SSID, provo a connettermi...";
+    nmcli connection up "$SSID" || echo "[WiFi] Tentativo fallito";
+    sleep 10;
+done;
+echo "[WiFi] Connesso a $SSID ✅";
+until ping -c1 10.42.0.1 &>/dev/null; do
+    echo "[MQTT] Broker non ancora raggiungibile...";
+    sleep 3;
+done;
+echo "[MQTT] Broker raggiungibile ✅";
+'
+
+ExecStart=/home/villasilvia/Desktop/condivisa/audioPlayer/target/distribution/start.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

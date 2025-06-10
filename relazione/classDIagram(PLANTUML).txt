@@ -1,0 +1,78 @@
+@startuml
+' Oggetti fisici principali
+
+class Coordinatore {
+  +RaspberryPi
+}
+
+class StazioneVideo {
+  +RaspberryPi
+  +SensoreUltrasuoni
+  +SchermoTV
+  +Luci: 0..2
+}
+
+class StazioneAudio {
+  +RaspberryPi
+  +Stereo
+}
+
+class StazioneLuce {
+  +Plafoniera
+  +ESP32
+  +TrasmettitoreIR
+}
+
+class ExtraIRCapture {
+  +ESP32
+  +RicevitoreIR
+}
+
+class Plafoniera {
+  +Dimmerabile: sì
+}
+
+class ESP32 {
+  +ConnessioneWiFi
+}
+
+class TrasmettitoreIR {
+  +CollegatoViaGPIO
+}
+
+class RicevitoreIR {}
+
+class SensoreUltrasuoni {}
+
+class SchermoTV {}
+
+class Stereo {}
+
+class Luce {
+  +Tipo: strisciaLED | altro
+  +Alimentazione: ShellyPlugIT
+}
+
+' Relazioni fisiche/compositive
+
+StazioneVideo --> RaspberryPi
+StazioneVideo --> SensoreUltrasuoni
+StazioneVideo --> SchermoTV
+StazioneVideo --> "0..2" Luce
+
+Luce --> ShellyPlugIT
+
+StazioneAudio --> RaspberryPi
+StazioneAudio --> Stereo
+
+StazioneLuce --> Plafoniera
+StazioneLuce --> ESP32
+StazioneLuce --> TrasmettitoreIR
+
+TrasmettitoreIR --> ESP32
+
+ExtraIRCapture --> ESP32
+ExtraIRCapture --> RicevitoreIR
+
+Coordinatore --> RaspberryPi
+@enduml

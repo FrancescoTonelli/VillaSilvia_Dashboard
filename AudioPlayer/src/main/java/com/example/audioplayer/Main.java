@@ -1,87 +1,129 @@
 package com.example.audioplayer;
 
+import io.netty.handler.codec.mqtt.MqttQoS;
+import io.vertx.core.Vertx;
+import io.vertx.mqtt.MqttClient;
+import io.vertx.mqtt.MqttClientOptions;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.media.MediaPlayer;
 import javafx.stage.Stage;
-import org.eclipse.paho.client.mqttv3.*;
+import io.vertx.core.buffer.Buffer;
+
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 public class Main extends Application {
 
+    private Vertx vertx;
+    private MqttClient client;
     private AudioPlayer player = new AudioPlayer();
-    private MQTTClientHandler mqttClientHandler;
+
+    private final String brokerHost = "10.42.0.1";
+    private final int brokerPort = 1883;
 
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
+        vertx = Vertx.vertx();
+        connectToBroker();
+    }
 
-        String broker = "tcp://10.42.0.1:1883";
-        String clientId = MqttClient.generateClientId();
-        mqttClientHandler = new MQTTClientHandler(broker, clientId);
+    private void connectToBroker() {
+        client = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
 
-        mqttClientHandler.subscribe("smartroom/audio", new MqttCallback() {
-            @Override
-            public void messageArrived(String topic, MqttMessage message) throws Exception {
-                String payload = new String(message.getPayload());
-                System.out.println("Messaggio ricevuto sul topic " + topic + ": " + payload);
+        attemptConnection();
+    }
 
-                switch (payload) {
-                    case "TRIGGERED":
-                        Platform.runLater(() -> triggered());
-                        break;
-                    case "VOLUME_50":
-                        Platform.runLater(() -> volume(0.5));
-                        break;
-                    case "VOLUME_100":
-                        Platform.runLater(() -> volume(1.0));
-                        break;
-                    case "VOLUME_0":
-                        Platform.runLater(() -> volume(0.0));
-                        break;
+    private void attemptConnection() {
+        System.out.println("Tentativo di connessione (60 sec max)");
+        client.connect(brokerPort, brokerHost, s -> {
+            if (s.succeeded()) {
+                System.out.println("Connesso al broker");
 
-                    default:
-                        System.out.println("Messaggio non riconosciuto");
-                        break;
-                }
+                client.subscribe("smartroom/audio/volume", 1);
 
-            }
+                JsonObject onlinePayload = new JsonObject()
+                        .put("online", true)
+                        .put("deviceId", "audioPlayer")
+                        // .put("deviceName", deviceName)
+                        // .put("ipAddress", getLocalIpAddress())
+                        // .put("uptime", System.currentTimeMillis() - appStartTime)
+                        .put("freeMemoryMB", Runtime.getRuntime().freeMemory() / (1024 * 1024))
+                        .put("totalMemoryMB", Runtime.getRuntime().totalMemory() / (1024 * 1024))
+                        .put("os", System.getProperty("os.name"))
+                        .put("timestamp", System.currentTimeMillis());
 
-            @Override
-            public void connectionLost(Throwable cause) {
-                System.out.println("Connessione persa con il broker MQTT");
-            }
+                client.publish(
+                        "smartroom/audio/data",
+                        Buffer.buffer(onlinePayload.encode()),
+                        MqttQoS.AT_LEAST_ONCE,
+                        false,
+                        false);
 
-            @Override
-            public void deliveryComplete(IMqttDeliveryToken token) {
-                // Non ci interessa la consegna dei messaggi in questo caso
+                client.publishHandler(message -> {
+                    String topic = message.topicName();
+                    String payload = message.payload().toString();
+
+                    System.out.println("Messaggio ricevuto: " + topic + " → " + payload);
+
+                    Platform.runLater(() -> handleMessage(payload));
+                });
+
+                client.closeHandler(v -> {
+                    System.err.println("Connessione MQTT persa. Riprovo tra 10s...");
+                    vertx.setTimer(10_000, id -> attemptConnection());
+                    Platform.runLater(() -> player.stop());
+                });
+
+            } else {
+                System.err.println("Dopo 60 secondi il tentativo di connessione è fallito");
+                attemptConnection();
             }
         });
+    }
 
-        player.getMediaPlayer().setOnEndOfMedia(() -> {
-            Platform.runLater(() -> {
-                try {
-                    System.out.println("Audio terminato. Inviando messaggio di fine riproduzione.");
-                    mqttClientHandler.publish("audio/status", "finito");
-                } catch (MqttException e) {
-                    e.printStackTrace();
-                }
-            });
-        });
+    private void handleMessage(String payload) {
+        switch (payload) {
+            case "TRIGGERED":
+                triggered();
+                break;
+            case "50":
+                volume(0.5);
+                break;
+            case "100":
+                volume(1.0);
+                break;
+            case "0":
+                volume(0.0);
+                break;
+            default:
+                System.out.println("Messaggio non riconosciuto: " + payload);
+        }
     }
 
     private void triggered() {
         if (player.getStatus() == MediaPlayer.Status.PLAYING) {
             player.pause();
-        } else {
-            if (player.getStatus() == MediaPlayer.Status.STOPPED) {
-                player.start("test.mp3");
-            } else if (player.getStatus() == MediaPlayer.Status.PAUSED) {
-                player.resume();
-            }
+        } else if (player.getStatus() == MediaPlayer.Status.STOPPED) {
+            player.start("test.mp3");
+        } else if (player.getStatus() == MediaPlayer.Status.PAUSED) {
+            player.resume();
         }
     }
 
     private void volume(double volume) {
         player.setVolume(volume);
+    }
+
+    @Override
+    public void stop() {
+        if (client != null && client.isConnected()) {
+            client.disconnect();
+        }
+        if (vertx != null) {
+            vertx.close();
+        }
     }
 
     public static void main(String[] args) {

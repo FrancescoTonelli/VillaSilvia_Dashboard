@@ -14,13 +14,13 @@ public class ProcessManager {
         }
 
         if (!first) {
-            executeScript("/home/aricci/Desktop/condivisa/MqttVideoClient/wake.sh");
+            executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/wake.sh");
         }
 
         try {
             // ⚠️ Usa path assoluto allo script .sh
             playVideoProcess = new ProcessBuilder(
-                    "/bin/bash", "/home/aricci/Desktop/condivisa/main-app/target/distribution/run.sh")
+                    "/bin/bash", "/home/villasilvia/Desktop/condivisa/videoPlayer/main-app/target/distribution/run.sh")
                     .inheritIO()
                     .start();
             System.out.println("Avviato playvideo-app via script");
@@ -46,7 +46,7 @@ public class ProcessManager {
             } catch (Exception e) {
                 System.err.println("Errore in stop: " + e.getMessage());
             }
-            executeScript("/home/aricci/Desktop/condivisa/MqttVideoClient/sleep.sh");
+            executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/sleep.sh");
 
         } else {
             System.out.println("Nessun processo attivo da fermare");

@@ -1,0 +1,5 @@
+mvn dependency:copy-dependencies -DoutputDirectory=target/distribution
+
+sposti dentro anche lo start.sh
+
+

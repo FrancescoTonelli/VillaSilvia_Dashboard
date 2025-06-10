@@ -10,14 +10,11 @@ public class AudioPlayer {
     // Metodo per avviare la riproduzione dell'audio
     public void start(String filename) {
         // Crea un oggetto Media e MediaPlayer per il file audio
-        File file = new File("audios/" + filename);
+        File file = new File("audio/" + filename);
         Media media = new Media(file.toURI().toString());
         mediaPlayer = new MediaPlayer(media);
 
-        mediaPlayer.setOnEndOfMedia(() -> {
-            System.out.println("Riproduzione terminata!");
-            stop();
-        });
+        mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
         mediaPlayer.play();
         System.out.println("Riproduzione avviata: " + filename);
     }

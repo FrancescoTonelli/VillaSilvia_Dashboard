@@ -16,7 +16,7 @@ import java.net.InetAddress;
 public class MqttHandler {
 
     private final MqttClient client;
-    private final String deviceId = "pi1";
+    private final String deviceId = "videoPlayer1";
     private final String deviceName = "Vetrina Centrale";
     private static final long appStartTime = System.currentTimeMillis();
     private final Vertx vertx;
@@ -47,7 +47,7 @@ public class MqttHandler {
 
     public void publishTriggered(JsonArray lights) {
         if (client.isConnected()) {
-            String topic = "smartroom/" + deviceId + "/triggered";
+            String topic = "smartroom/" + deviceId + "/videoPlayer/triggered";
             JsonObject payload = new JsonObject()
                     .put("deviceName", deviceName)
                     .put("deviceId", deviceId)
@@ -66,7 +66,7 @@ public class MqttHandler {
 
     public void publishEnded() {
         if (client.isConnected()) {
-            String topic = "smartroom/" + deviceId + "/ended";
+            String topic = "smartroom/" + deviceId + "/videoPlayer/ended";
             JsonObject payload = new JsonObject()
                     .put("deviceName", deviceName)
                     .put("deviceId", deviceId)

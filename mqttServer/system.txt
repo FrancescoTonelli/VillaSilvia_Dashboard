@@ -1,0 +1,27 @@
+sudo nano /etc/systemd/system/mqttServer.service
+
+
+
+
+[Unit]
+Description=MqttServer
+After=network.target
+
+[Service]
+User=villasilvia
+ExecStart=/usr/bin/java -jar /home/villasilvia/Desktop/condivisa/mqttServer/target/smartroom-dashboard-1.0.0.jar
+WorkingDirectory=/home/villasilvia/Desktop/condivisa/mqttServer
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+
+
+sudo systemctl daemon-reload
+sudo systemctl enable mqttServer
+sudo systemctl start mqttServer
+
+
+
