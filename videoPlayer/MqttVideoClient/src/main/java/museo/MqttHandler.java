@@ -142,7 +142,7 @@ public class MqttHandler {
                 switch (payload) {
                     case "sleep":
                         vertx.executeBlocking(promise -> {
-                            executeScript("/home/aricci/Desktop/condivisa/MqttVideoClient/log.sh");
+                            executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
                             manager.stopPlayVideoApp();
                             promise.complete();
                         }, false, res -> {
@@ -152,7 +152,7 @@ public class MqttHandler {
 
                     case "wake":
                         vertx.executeBlocking(promise -> {
-                            executeScript("/home/aricci/Desktop/condivisa/MqttVideoClient/log.sh");
+                            executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
                             manager.startPlayVideoApp(false);
                             promise.complete();
                         }, false, res -> {

@@ -14,6 +14,7 @@ import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -23,6 +24,7 @@ import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import com.google.gson.Gson;
 
@@ -103,8 +105,12 @@ public class PlayVideo extends Application {
     root = new StackPane();
     root.setAlignment(Pos.CENTER);
 
+    Rectangle2D screenBounds = Screen.getPrimary().getBounds();
+    double screenWidth = screenBounds.getWidth();
+    double screenHeight = screenBounds.getHeight();
+
     // SCENE
-    Scene scene = new Scene(root, 640, 360);
+    Scene scene = new Scene(root, screenWidth, screenHeight);
     scene.setFill(Color.BLACK);
 
     primaryStage.setScene(scene);
@@ -123,10 +129,8 @@ public class PlayVideo extends Application {
     mediaView = new MediaView();
     mediaView.setRotate(90);
     mediaView.setPreserveRatio(true);
-    DoubleProperty width = mediaView.fitWidthProperty();
-    DoubleProperty height = mediaView.fitHeightProperty();
-    width.bind(Bindings.selectDouble(mediaView.sceneProperty(), "width"));
-    height.bind(Bindings.selectDouble(mediaView.sceneProperty(), "height"));
+    mediaView.fitWidthProperty().bind(root.widthProperty());
+    mediaView.fitHeightProperty().bind(root.heightProperty());
 
     // THUMBNAIL VIEW
     thumbnailView = new ImageView();
@@ -138,10 +142,13 @@ public class PlayVideo extends Application {
         System.out.println("Errore caricamento immagine: " + e.getMessage());
       }
     }
-    thumbnailView.setFitWidth(640);
-    thumbnailView.setFitHeight(360);
+    thumbnailView.fitWidthProperty().bind(root.widthProperty());
+    thumbnailView.fitHeightProperty().bind(root.heightProperty());
+
     thumbnailView.setPreserveRatio(true);
     thumbnailView.setRotate(90);
+
+    currentState = State.SHOW_THUMBNAIL;
 
     // NO CONTENT LABEL
     /*

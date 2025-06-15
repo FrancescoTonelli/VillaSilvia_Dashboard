@@ -48,16 +48,48 @@ void callback(char *topic, byte *payload, unsigned int length)
   Serial.print(topic);
   Serial.print("]: ");
 
-  String jsonStr;
+  String command;
   for (unsigned int i = 0; i < length; i++)
   {
-    jsonStr += (char)payload[i];
+    command += (char)payload[i];
   }
-  Serial.println(jsonStr);
+  Serial.println(command);
 
-  // Esempio messaggio JSON:
-  // {"protocol":"NEC","value":"0x20DF10EF","bits":32}
+  // Comandi supportati: ON, OFF, LIGHT UP, LIGHT DOWN
+  if (command == "ON")
+  {
+    irsend.sendNEC(0x20DF10EF, 32);
+    Serial.println("Inviato comando IR: ON");
+  }
+  else if (command == "OFF")
+  {
+    irsend.sendNEC(0x20DF10EF, 32);
+    Serial.println("Inviato comando IR: OFF");
+  }
+  else if (command == "LIGHT_UP")
+  {
+    for (int i = 0; i < 5; i++)
+    {
+      irsend.sendNEC(0x20DF40BF, 32);
+      Serial.println("Inviato comando IR: LIGHT UP");
+      delay(500);
+    }
+  }
+  else if (command == "LIGHT_DOWN")
+  {
+    for (int i = 0; i < 5; i++)
+    {
+      irsend.sendNEC(0x20DFC03F, 32);
+      Serial.println("Inviato comando IR: LIGHT DOWN");
+      delay(500);
+    }
+  }
+  else
+  {
+    Serial.println("Comando sconosciuto!");
+  }
 
+  /*VERSIONE CON CODICI MANDATI DAL BROKER
   StaticJsonDocument<200> doc;
   DeserializationError error = deserializeJson(doc, jsonStr);
   if (error)
@@ -77,22 +109,10 @@ void callback(char *topic, byte *payload, unsigned int length)
   {
     irsend.sendNEC(value, bits);
   }
-  else if (protocol == "SONY")
-  {
-    irsend.sendSony(value, bits);
-  }
-  else if (protocol == "RC5")
-  {
-    irsend.sendRC5(value, bits);
-  }
-  else if (protocol == "RC6")
-  {
-    irsend.sendRC6(value, bits);
-  }
   else
   {
     Serial.println("Protocollo non supportato!");
-  }
+  }*/
 }
 
 // === Riconnessione MQTT ===

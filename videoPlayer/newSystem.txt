@@ -1,0 +1,25 @@
+mkdir -p ~/.config/systemd/user
+
+nano ~/.config/systemd/user/videoPlayer.service
+
+
+[Unit]
+Description=Servizio MQTT Video Client
+
+[Service]
+ExecStart=/usr/bin/java -jar /home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/target/mqtt-service-1.0-SNAPSHOT.jar
+WorkingDirectory=/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient
+Restart=always
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/villasilvia/.Xauthority
+
+[Install]
+WantedBy=default.target
+
+
+loginctl enable-linger villasilvia
+
+
+systemctl --user daemon-reload
+systemctl --user enable mqttclient.service
+systemctl --user start mqttclient.service

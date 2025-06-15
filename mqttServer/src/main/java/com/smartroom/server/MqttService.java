@@ -46,7 +46,7 @@ public class MqttService {
                         System.out.println("Dispositivo triggerato: " + data.encodePrettily());
 
                         if (deviceId.equals("videoPlayer1")) {
-                            publish(plafTopic, lumDown);
+                            publish(plafTopic, "LIGHT_DOWN");
                             publish(audioTopic, "50");
                         }
 
@@ -59,9 +59,9 @@ public class MqttService {
 
                         switch (deviceId) {
 
-                            case "videoPlayer4":
+                            case "videoPlayer1":
                                 System.out.println("Ultima stazione video terminata: " + deviceId);
-                                publish(plafTopic, lumUp);
+                                publish(plafTopic, "LIGHT_UP");
                                 publish(audioTopic, "100");
                                 break;
 
@@ -83,7 +83,7 @@ public class MqttService {
 
                         if (deviceId.contains("plafoniera")) {
                             System.out.println("Plafoniera connessa");
-                            publish(plafTopic, plafOn);
+                            publish(plafTopic, "ON");
                         }
 
                         if (deviceId.contains("videoPlayer")) {

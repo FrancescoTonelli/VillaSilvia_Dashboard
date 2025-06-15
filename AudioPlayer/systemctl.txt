@@ -1,26 +1,28 @@
 Da Cambiare il nomeuser e nome cartella nei percorsi!!!!!
 
-sudo nano /etc/systemd/system/audioPlayer
+sudo nano /etc/systemd/system/audioPlayer.service
 
 aggiungi:
 
 [Unit]
 Description=Servizio MQTT Audio Client
-After=network-online.target
-Wants=network-online.target
-
+After=network-online.target graphical.target
+Wants=network-online.target graphical.target
 [Service]
-# Attendi che il dispositivo abbia un IP sulla rete e il broker sia raggiungibile
-ExecStartPre=/bin/bash -c 'until ip route | grep -q "10.42.0"; do echo "In attesa della rete..."; sleep 2; done'
-ExecStartPre=/bin/bash -c 'until ping -c1 10.42.0.1 &>/dev/null; do echo "In attesa del broker..."; sleep 2; done'
-
-ExecStart=/home/villasilvia/Desktop/condivisa/audioPlayer/target/distribution/start.sh
+ExecStart=/bin/bash /home/villasilvia/Desktop/condivisa/audioPlayer/target/distribution/start.sh
 WorkingDirectory=/home/villasilvia/Desktop/condivisa/audioPlayer
 User=villasilvia
 Restart=always
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/villasilvia/.Xauthority
+Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
 
 [Install]
 WantedBy=multi-user.target
+
+e non sei gia nel gruppo audio:
+sudo usermod -aG audio villasilvia
+
 
 
 

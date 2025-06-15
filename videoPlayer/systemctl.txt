@@ -1,26 +1,24 @@
-Da Cambiare il nomeuser e nome cartella nei percorsi!!!!!
 
 sudo nano /etc/systemd/system/videoPlayer.service
 
-aggiungi:
+
 
 [Unit]
 Description=Servizio MQTT Video Client
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/java -jar /home/aricci/Desktop/condivisa/MqttVideoClient/target/mqtt-service-1.0-SNAPSHOT.jar
-WorkingDirectory=/home/aricci/Desktop/condivisa/MqttVideoClient
-User=aricci
+ExecStart=/usr/bin/java -jar /home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/target/mqtt-service-1.0-SNAPSHOT.jar
+WorkingDirectory=/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient
+User=villasilvia
 Restart=always
 Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/aricci/.Xauthority
+Environment=XAUTHORITY=/home/villasilvia/.Xauthority
 
 [Install]
 WantedBy=multi-user.target
 
 
-sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 sudo systemctl enable videoPlayer.service
 sudo systemctl start videoPlayer.service
