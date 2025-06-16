@@ -33,6 +33,8 @@ public class MqttService {
                 client.subscribe("smartroom/+/videoPlayer/triggered", 0);
                 client.subscribe("smartroom/+/videoPlayer/ended", 0);
                 client.subscribe("smartroom/shutdown", 0);
+                client.subscribe("smartroom/go_sleep", 0);
+                client.subscribe("smartroom/wake_up", 0);
 
                 // gestisce la recezione dei messaggi ricevuti sui topic sopra elencati
                 client.publishHandler(message -> {
@@ -97,6 +99,12 @@ public class MqttService {
                             e.printStackTrace();
                         }
                         System.out.println("Raspberry Pi in spegnimento...");
+                    } else if (topic.contains("go_sleep")) {
+                        publish(audioTopic, "0");
+                        publish(plafTopic, "OFF");
+                    } else if (topic.contains("wake_up")) {
+                        publish(audioTopic, "100");
+                        publish(plafTopic, "ON");
                     }
                 });
 

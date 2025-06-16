@@ -8,12 +8,12 @@
 // === Configurazione Wi-Fi e MQTT ===
 const char *ssid = "RaspPi";
 const char *password = "VillaRasp1";
-const char *mqtt_server = "10.42.0.1"; // IP del broker MQTT
+const char *mqtt_server = "10.42.0.1";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-// === Pin trasmettitore IR ===
+// === Trasmettitore IR ===
 #define PIN_SEND1 4
 IRsend irsend(PIN_SEND1);
 
@@ -58,19 +58,19 @@ void callback(char *topic, byte *payload, unsigned int length)
   // Comandi supportati: ON, OFF, LIGHT UP, LIGHT DOWN
   if (command == "ON")
   {
-    irsend.sendNEC(0x20DF10EF, 32);
+    irsend.sendNEC(0x807F807F, 32);
     Serial.println("Inviato comando IR: ON");
   }
   else if (command == "OFF")
   {
-    irsend.sendNEC(0x20DF10EF, 32);
+    irsend.sendNEC(0x807F807F, 32);
     Serial.println("Inviato comando IR: OFF");
   }
   else if (command == "LIGHT_UP")
   {
     for (int i = 0; i < 5; i++)
     {
-      irsend.sendNEC(0x20DF40BF, 32);
+      irsend.sendNEC(0x807FC03F, 32);
       Serial.println("Inviato comando IR: LIGHT UP");
       delay(500);
     }
@@ -79,7 +79,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   {
     for (int i = 0; i < 5; i++)
     {
-      irsend.sendNEC(0x20DFC03F, 32);
+      irsend.sendNEC(0x807F10EF, 32);
       Serial.println("Inviato comando IR: LIGHT DOWN");
       delay(500);
     }

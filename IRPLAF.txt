@@ -1,0 +1,18 @@
+== ON/OFF ==
+Protocollo: NEC
+Codice HEX: 0x807F807F
+Bit: 32
+
+== LIGHT UP ==
+Protocollo: NEC
+Codice HEX: 0x807FC03F
+Bit: 32
+
+== LIGHT DOWN ==
+Protocollo: NEC
+Codice HEX: 0x807F10EF
+Bit: 32
+
+
+
+

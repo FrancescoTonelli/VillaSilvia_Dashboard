@@ -113,7 +113,9 @@ public class Main extends Application {
     }
 
     private void volume(double volume) {
-        player.setVolume(volume);
+        if (player.getStatus() == MediaPlayer.Status.PLAYING) {
+            player.setVolume(volume);
+        }
     }
 
     @Override

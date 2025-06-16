@@ -4,16 +4,16 @@
 echo "standby 0" | cec-client -s -d 1
 
 # 2. Spegni l'uscita HDMI del Raspberry
-OUTPUT=$(xrandr | grep " connected" | cut -d ' ' -f1)
-xrandr --output "$OUTPUT" --off
+#OUTPUT=$(xrandr | grep " connected" | cut -d ' ' -f1)
+#xrandr --output "$OUTPUT" --off
 
 # 3. Disattiva interfaccia grafica
-sudo systemctl isolate multi-user.target
+#sudo systemctl isolate multi-user.target
 
 # 4. Imposta la CPU su modalità risparmio energetico
-for CPUFREQ in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
-  echo "powersave" | sudo tee "$CPUFREQ"
-done
+#for CPUFREQ in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+  #echo "powersave" | sudo tee "$CPUFREQ"
+#done
 
 # 5. Disattiva LED (facoltativo)
 # echo 0 | sudo tee /sys/class/leds/led0/brightness

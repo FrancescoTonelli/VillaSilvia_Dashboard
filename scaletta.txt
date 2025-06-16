@@ -1,4 +1,0 @@
-1) prendere i codici della plafoniera
-2) modificare il progetto ESP32IR sia codici sia il for di quante tacche si abbassa/alza
-3) lasciare la plafoniera al max della luminosita
-3) connettere broker e poi video,shelly, audio, plafoniera. -> prima di accenderli collega hdmi e jack

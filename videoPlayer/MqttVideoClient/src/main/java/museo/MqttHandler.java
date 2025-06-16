@@ -112,9 +112,14 @@ public class MqttHandler {
      */
 
     public void subscribeToSleepCommands() {
-        client.subscribe("smartroom/" + deviceId + "/cmd", MqttQoS.AT_LEAST_ONCE.value(), ar -> {
+        client.subscribe("smartroom/go_sleep", MqttQoS.AT_LEAST_ONCE.value(), ar -> {
             if (ar.succeeded()) {
-                System.out.println("Iscritto a smartroom/" + deviceId + "/cmd");
+                System.out.println("Iscritto a smartroom/go_sleep");
+            }
+        });
+        client.subscribe("smartroom/wake_up", MqttQoS.AT_LEAST_ONCE.value(), ar -> {
+            if (ar.succeeded()) {
+                System.out.println("Iscritto a smartroom/wake_up");
             }
         });
         client.subscribe("smartroom/shutdown", MqttQoS.AT_LEAST_ONCE.value(), ar -> {
@@ -138,30 +143,22 @@ public class MqttHandler {
                 }
                 System.out.println("Raspberry Pi in spegnimento...");
 
-            } else if (topic.contains("cmd")) {
-                switch (payload) {
-                    case "sleep":
-                        vertx.executeBlocking(promise -> {
-                            executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
-                            manager.stopPlayVideoApp();
-                            promise.complete();
-                        }, false, res -> {
-                            // Niente da fare nel callback, solo per non bloccare
-                        });
-                        break;
+            } else if (topic.contains("wake_up")) {
+                vertx.executeBlocking(promise -> {
+                    executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
+                    manager.startPlayVideoApp(false);
+                    promise.complete();
+                }, false, res -> {
+                });
 
-                    case "wake":
-                        vertx.executeBlocking(promise -> {
-                            executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
-                            manager.startPlayVideoApp(false);
-                            promise.complete();
-                        }, false, res -> {
-                        });
-                        break;
-
-                    default:
-                        System.out.println("Comando non riconosciuto");
-                }
+            } else if (topic.contains("go_sleep")) {
+                vertx.executeBlocking(promise -> {
+                    executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
+                    manager.stopPlayVideoApp();
+                    promise.complete();
+                }, false, res -> {
+                    // Niente da fare nel callback, solo per non bloccare
+                });
             }
 
         });
