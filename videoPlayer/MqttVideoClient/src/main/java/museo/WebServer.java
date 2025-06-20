@@ -10,6 +10,10 @@ public class WebServer {
 
     private final Vertx vertx;
 
+    // avento due progetti separati (primario -> Mqtt che avvia il secondario ->
+    // JavaFx), questo webServer è usato in
+    // localhost dal secondario per comunicare con il primario, non avendo il suo
+    // riferimento
     public WebServer(Vertx vertx, MqttHandler mqttHandler) {
         this.vertx = vertx;
 

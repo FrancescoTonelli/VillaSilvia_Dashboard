@@ -1,0 +1,30 @@
+
+-------------
+TEST PER LUCI LOCALI -> DA CAMBIARE IL TOPIC PER CIASCUNA LUCE (id_shelly/rpc)
+
+mosquitto_pub -h 10.42.0.1 -t shelly-disco/rpc -m '{ "id": 1, "src": "server", "method": "Switch.Set", "params": { "id": 0, "on": true } }'
+
+mosquitto_pub -h 10.42.0.1 -t shelly-disco/rpc -m '{ "id": 1, "src": "server", "method": "Switch.Set", "params": { "id": 0, "on": false } }'
+
+--------------
+TEST AUDIO
+
+mosquitto_pub -h 10.42.0.1 -t smartroom/audio/volume -m "TRIGGERED"
+mosquitto_pub -h 10.42.0.1 -t smartroom/audio/volume -m "100"
+mosquitto_pub -h 10.42.0.1 -t smartroom/audio/volume -m "50"
+mosquitto_pub -h 10.42.0.1 -t smartroom/audio/volume -m "0"
+
+--------------
+TEST PLAFONIERE
+
+mosquitto_pub -h 10.42.0.1 -t smartroom/plafoniera/luminosità -m "ON"
+mosquitto_pub -h 10.42.0.1 -t smartroom/plafoniera/luminosità -m "OFF"
+mosquitto_pub -h 10.42.0.1 -t smartroom/plafoniera/luminosità -m "LIGHT_UP"
+mosquitto_pub -h 10.42.0.1 -t smartroom/plafoniera/luminosità -m "LIGHT_DOWN"
+
+--------------
+
+mosquitto_pub -h 192.168.0.130  -t smartroom/pi1/cmd -m sleep
+mosquitto_pub -h 192.168.0.130  -t smartroom/pi1/cmd -m wake
+mosquitto_pub -h 10.42.0.1  -t smartroom/shutdown -m '{ "command": "shutdown" }'
+

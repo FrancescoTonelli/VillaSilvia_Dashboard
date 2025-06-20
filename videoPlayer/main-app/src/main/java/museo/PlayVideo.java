@@ -4,15 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.DoubleProperty;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
@@ -26,6 +22,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import museo.UsbMediaScanner.ScanResult;
+
 import com.google.gson.Gson;
 
 public class PlayVideo extends Application {
@@ -58,10 +56,16 @@ public class PlayVideo extends Application {
     createScene(primaryStage);
     System.out.println("scena creata");
 
+    // L'applicazione deve partire quando viene trovata una USB concontenuto valido.
+    // Il thread JavaFx non puù però stare fermo in attesa, quindi viene creato un
+    // nuovo thread solo per questa fase iniziale di atttesa
     new Thread(() -> {
       String user = System.getProperty("user.name");
 
-      while (!loadMediaFromUsb(user)) {
+      ScanResult result = null;
+
+      while (result == null || !result.isComplete()) {
+        result = UsbMediaScanner.scanForMedia(user);
         try {
           Thread.sleep(2000); // attesa per non sovraccaricare la CPU
         } catch (InterruptedException e) {
@@ -70,8 +74,16 @@ public class PlayVideo extends Application {
       }
 
       // Quando trova i media, aggiorna la GUI
+      ScanResult finalResult = result;
+
       Platform.runLater(() -> {
+        this.activeVideoPath = finalResult.videoPath;
+        this.activeVideoName = finalResult.videoName;
+        this.activeThumbnailPath = finalResult.thumbnailPath;
+        this.lightConfigList = finalResult.lightConfigList;
+
         createComponent(); // carica contenuti multimediali
+
         System.out.println("Componenti creati");
         primaryStage.setOnCloseRequest(event -> event.consume());
 
@@ -81,7 +93,6 @@ public class PlayVideo extends Application {
           /*
            * raspi.onTriggered(() -> {
            * System.out.println("BUTTON TRIGGERED");
-           * returnToBlackScreen();
            * });
            */
 
@@ -99,6 +110,15 @@ public class PlayVideo extends Application {
 
   }
 
+  // Formiamo la GUI singolarmente, il risultato finale sarà :
+  // Scene -> Root ->BlackRectangle, MediaView, ThumbnailView
+  // MediaView -> MediaPlayer -> Media
+  // ThumbnailView -> Image
+  // Quindi iniziamo creando la finestra GUI, a cui aggiungiamo mano a mano i 3
+  // componenti.
+  // In base a cosa deve mostrare rende visibile un elemento e nasconde gli altri
+
+  // Metodo per creare la finestra della GUI
   private void createScene(Stage primaryStage) {
 
     // ROOT
@@ -120,6 +140,7 @@ public class PlayVideo extends Application {
 
   }
 
+  // Metodo per aggiungere alla finestra le componenti (Img,video,black screen)
   private void createComponent() {
     // BLACK SCREEN
     blackScreen = new Rectangle(640, 360, Color.BLACK);
@@ -127,24 +148,15 @@ public class PlayVideo extends Application {
 
     // MEDIA VIEW
     mediaView = new MediaView();
-    mediaView.setRotate(90);
-    mediaView.setPreserveRatio(true);
     mediaView.fitWidthProperty().bind(root.widthProperty());
     mediaView.fitHeightProperty().bind(root.heightProperty());
+    mediaView.setPreserveRatio(true);
+    mediaView.setRotate(90);
 
     // THUMBNAIL VIEW
     thumbnailView = new ImageView();
-    if (activeThumbnailPath != null) {
-      try {
-        Image image = new Image("file:" + activeThumbnailPath, false);
-        thumbnailView.setImage(image);
-      } catch (Exception e) {
-        System.out.println("Errore caricamento immagine: " + e.getMessage());
-      }
-    }
     thumbnailView.fitWidthProperty().bind(root.widthProperty());
     thumbnailView.fitHeightProperty().bind(root.heightProperty());
-
     thumbnailView.setPreserveRatio(true);
     thumbnailView.setRotate(90);
 
@@ -163,6 +175,9 @@ public class PlayVideo extends Application {
 
     if (activeVideoPath != null) {
       createVideo();
+    }
+    if (activeThumbnailPath != null) {
+      createThumbnail();
     }
 
     updateViewForState();
@@ -192,6 +207,19 @@ public class PlayVideo extends Application {
 
   }
 
+  private void createThumbnail() {
+    if (activeThumbnailPath != null) {
+      try {
+        Image image = new Image("file:" + activeThumbnailPath, false);
+        thumbnailView.setImage(image);
+      } catch (Exception e) {
+        System.out.println("Errore caricamento immagine: " + e.getMessage());
+      }
+    }
+  }
+
+  // Metodo chiamato quando il Sonar viene triggerato, cambai lo stato e la
+  // visibilità delle componenti della GUI
   public void triggered() {
     Platform.runLater(() -> {
       switch (currentState) {
@@ -205,19 +233,9 @@ public class PlayVideo extends Application {
           }
           break;
         case PLAYING_VIDEO:
-          // No action
+          // Il trigger viene ignorato se il video è in riproduzione
           break;
       }
-      updateViewForState();
-    });
-  }
-
-  public void returnToBlackScreen() {
-    Platform.runLater(() -> {
-      if (mediaPlayer != null) {
-        mediaPlayer.stop();
-      }
-      currentState = State.BLACK_SCREEN;
       updateViewForState();
     });
   }
@@ -228,70 +246,8 @@ public class PlayVideo extends Application {
     mediaView.setVisible(currentState == State.PLAYING_VIDEO);
   }
 
-  private Boolean loadMediaFromUsb(String user) {
-    List<File> searchDirs = searchingDir(user);
-    Boolean videoFinded = false;
-    Boolean imgFinded = false;
-    Boolean lightJsonFinded = false;
-
-    for (File dir : searchDirs) {
-      File[] videoFiles = dir.listFiles((f) -> f.isFile() && f.getName().toLowerCase().endsWith(".mp4"));
-      if (videoFiles != null && videoFiles.length > 0) {
-        File videoFile = videoFiles[0];
-        activeVideoPath = videoFile.getAbsolutePath();
-        activeVideoName = videoFile.getName();
-        System.out.println("Trovato video: " + activeVideoPath);
-        videoFinded = true;
-      }
-      File[] imageFiles = dir.listFiles((f) -> f.isFile() && f.getName().toLowerCase().endsWith(".jpg"));
-      if (imageFiles != null && imageFiles.length > 0) {
-        activeThumbnailPath = imageFiles[0].getAbsolutePath();
-        System.out.println("Trovata immagine: " + (activeThumbnailPath != null ? activeThumbnailPath : "nessuna"));
-        imgFinded = true;
-      }
-      File configFile = new File(dir, "light.json");
-      if (configFile.exists()) {
-        try {
-          String json = new String(Files.readAllBytes(configFile.toPath()));
-          Gson gson = new Gson();
-          LightConfig[] configArray = gson.fromJson(json, LightConfig[].class);
-          lightConfigList = Arrays.asList(configArray);
-          System.out.println("Caricate " + lightConfigList.size() + " configurazioni luci.");
-          lightJsonFinded = true;
-        } catch (Exception e) {
-          System.err.println("Errore nella lettura di light.json: " + e.getMessage());
-          lightConfigList = new ArrayList<>();
-        }
-      }
-
-      return videoFinded && imgFinded && lightJsonFinded;
-    }
-    return false;
-  }
-
-  public static List<File> searchingDir(String user) {
-    List<File> searchDirs = new ArrayList<>();
-
-    File mediaRoot = new File("/media/" + user);
-    File mntRoot = new File("/mnt/");
-
-    if (mediaRoot.exists()) {
-      File[] mediaDevices = mediaRoot.listFiles(File::isDirectory);
-      if (mediaDevices != null) {
-        searchDirs.addAll(Arrays.asList(mediaDevices));
-      }
-    }
-
-    if (mntRoot.exists()) {
-      File[] mntDevices = mntRoot.listFiles(File::isDirectory);
-      if (mntDevices != null) {
-        searchDirs.addAll(Arrays.asList(mntDevices));
-      }
-    }
-
-    return searchDirs;
-  }
-
+  // metodo usato pe notificare il progetto primario (mqtt) tramite HTTP in
+  // localhost
   private void notifyEvent(String event) {
     try {
       URL url = new URL("http://localhost:8080/event/" + event);

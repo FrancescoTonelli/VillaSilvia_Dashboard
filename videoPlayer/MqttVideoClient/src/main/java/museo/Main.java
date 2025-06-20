@@ -8,14 +8,8 @@ public class Main {
 
         Vertx vertx = Vertx.vertx();
 
-        ProcessManager processManager = new ProcessManager();
-        MqttHandler mqttHandler = new MqttHandler(vertx, processManager);
+        MqttHandler mqttHandler = new MqttHandler(vertx);
         WebServer webServer = new WebServer(vertx, mqttHandler);
-
-        // una volta connesso al broker, fa partire javaFX + pi4j
-        mqttHandler.attemptConnection(() -> {
-            processManager.startPlayVideoApp(true);
-        });
 
     }
 

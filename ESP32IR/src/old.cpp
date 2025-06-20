@@ -1,5 +1,8 @@
 /*
 
+Codice utilizzato nelle prime fasi per testare se questa soluzione con IR funzionasse
+è l'unione del ricevitore e trasmettitore
+
 #include <Arduino.h>
 #include <IRremoteESP8266.h>
 #include <IRrecv.h>

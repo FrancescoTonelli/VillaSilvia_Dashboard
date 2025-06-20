@@ -5,21 +5,28 @@ import java.util.concurrent.TimeUnit;
 
 public class ProcessManager {
 
-    private Process playVideoProcess;
+    private Process videoPlayerProcess;
+
+    // Metodo usato per avviare l'applicazione JavaFX e mandare il Raspberry Pi in
+    // modalità risparmio energetico (solo se non è il primo avvio)
 
     public void startPlayVideoApp(Boolean first) {
-        if (playVideoProcess != null && playVideoProcess.isAlive()) {
-            System.out.println("playvideo-app è già in esecuzione");
+        if (videoPlayerProcess != null && videoPlayerProcess.isAlive()) {
+            System.out.println("videoPlayer è già in esecuzione");
             return;
         }
 
         if (!first) {
+            // non essendo il primo avvio è stato "addormentato" in precedenza, stampa in un
+            // log il suo stato (CPU,
+            // temperatura... durante lo sleep) e poi sveglia il Raspberri Pi dal risparmio
+            // energetico
+            executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
             executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/wake.sh");
         }
 
         try {
-            // ⚠️ Usa path assoluto allo script .sh
-            playVideoProcess = new ProcessBuilder(
+            videoPlayerProcess = new ProcessBuilder(
                     "/bin/bash", "/home/villasilvia/Desktop/condivisa/videoPlayer/main-app/target/distribution/run.sh")
                     .inheritIO()
                     .start();
@@ -30,13 +37,18 @@ public class ProcessManager {
 
     }
 
+    // Metodo usato per terminare l'applicazione JavaFX e mandare il Raspberry Pi in
+    // modalità risparmio energetico
     public void stopPlayVideoApp() {
-        if (playVideoProcess != null && playVideoProcess.isAlive()) {
+        // stampa in un log il suo stato (CPU,temperatura...) durante l'esecuzione
+        // normale
+        executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
+        if (videoPlayerProcess != null && videoPlayerProcess.isAlive()) {
             System.out.println("Tentativo di chiusura playvideo-app...");
-            playVideoProcess.destroyForcibly();
+            videoPlayerProcess.destroyForcibly();
 
             try {
-                boolean exited = playVideoProcess.waitFor(2, TimeUnit.SECONDS);
+                boolean exited = videoPlayerProcess.waitFor(2, TimeUnit.SECONDS);
                 if (!exited) {
                     System.out.println("Ancora vivo, uso pkill");
                     Runtime.getRuntime().exec("pkill -f PlayVideo");
@@ -46,13 +58,14 @@ public class ProcessManager {
             } catch (Exception e) {
                 System.err.println("Errore in stop: " + e.getMessage());
             }
+            // Manda il Raspberry Pi in risparmio energetico
             executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/sleep.sh");
 
         } else {
             System.out.println("Nessun processo attivo da fermare");
         }
 
-        playVideoProcess = null;
+        videoPlayerProcess = null;
     }
 
     public void executeScript(String path) {

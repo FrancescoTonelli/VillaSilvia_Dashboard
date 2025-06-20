@@ -9,47 +9,52 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import java.net.UnknownHostException;
-import java.io.IOException;
-import java.net.InetAddress;
 
 public class MqttHandler {
 
     private final MqttClient client;
     private final String deviceId = "videoPlayer1";
-    private final String deviceName = "Vetrina Centrale";
-    private static final long appStartTime = System.currentTimeMillis();
     private final Vertx vertx;
     private final ProcessManager manager;
 
-    public MqttHandler(Vertx vertx, ProcessManager manager) {
+    private final String shutdownTopic = "smartroom/shutdown";
+    private final String wakeTopic = "smartroom/wake_up";
+    private final String sleepTopic = "smartroom/go_sleep";
+
+    public MqttHandler(Vertx vertx) {
         this.vertx = vertx;
-        this.manager = manager;
+        this.manager = new ProcessManager();
         client = MqttClient.create(vertx, new MqttClientOptions());
+        attemptConnection();
     }
 
-    public void attemptConnection(Runnable onConnected) {
+    public void attemptConnection() {
         client.connect(1883, "10.42.0.1", ar -> {
             if (ar.succeeded()) {
-                System.out.println("MQTT connesso");
+                System.out.println("Connesso al broker Mqtt");
+                subscribeToTopics();
+                publishData();
+
                 client.closeHandler(v -> {
-                    System.out.println("MQTT disconnesso!");
-                    // attemptConnection(onConnected);
+                    System.err.println("Connessione MQTT persa. Riprovo tra 10s...");
+                    manager.stopPlayVideoApp();
+                    vertx.setTimer(10_000, id -> attemptConnection());
+
                 });
-                this.subscribeToSleepCommands();
-                onConnected.run();
+
+                manager.startPlayVideoApp(true);
             } else {
-                System.err.println("Connessione fallita: " + ar.cause().getMessage());
-                vertx.setTimer(10000, id -> attemptConnection(onConnected));
+                System.err.println("Dopo 60 secondi il tentativo di connessione è fallito" + ar.cause().getMessage());
+                attemptConnection();
             }
         });
     }
 
+    // Metodo per comunicare al broker l'inizio della riproduzione del video
     public void publishTriggered(JsonArray lights) {
         if (client.isConnected()) {
             String topic = "smartroom/" + deviceId + "/videoPlayer/triggered";
             JsonObject payload = new JsonObject()
-                    .put("deviceName", deviceName)
                     .put("deviceId", deviceId)
                     .put("event", "triggered")
                     .put("lights", lights);
@@ -64,11 +69,11 @@ public class MqttHandler {
         }
     }
 
+    // Metodo per comunicare al broker la conclusione della riproduzione del video
     public void publishEnded() {
         if (client.isConnected()) {
             String topic = "smartroom/" + deviceId + "/videoPlayer/ended";
             JsonObject payload = new JsonObject()
-                    .put("deviceName", deviceName)
                     .put("deviceId", deviceId)
                     .put("event", "ended");
             client.publish(topic,
@@ -82,112 +87,82 @@ public class MqttHandler {
         }
     }
 
-    /*
-     * public void publishOnlineStatus(String activeVideoName) {
-     * if (client.isConnected()) {
-     * String topic = "smartroom/" + deviceId + "/data";
-     * JsonObject payload = new JsonObject()
-     * .put("online", true)
-     * .put("deviceId", deviceId)
-     * .put("deviceName", deviceName)
-     * .put("activeVideo", activeVideoName)
-     * .put("ipAddress", getLocalIpAddress())
-     * .put("uptime", System.currentTimeMillis() - appStartTime)
-     * .put("freeMemoryMB", Runtime.getRuntime().freeMemory() / (1024 * 1024))
-     * .put("totalMemoryMB", Runtime.getRuntime().totalMemory() / (1024 * 1024))
-     * .put("os", System.getProperty("os.name"))
-     * .put("timestamp", System.currentTimeMillis());
-     * 
-     * client.publish(topic,
-     * Buffer.buffer(payload.encode()),
-     * MqttQoS.AT_LEAST_ONCE,
-     * false,
-     * true); // retained = true
-     * System.out.println("MQTT online status pubblicato con video: " +
-     * activeVideoName);
-     * } else {
-     * System.out.println("MQTT non connesso (data)");
-     * }
-     * }
-     */
+    // Quando il dispositivo si connette al broker gli manda un messaggio con i suoi
+    // dati per fargli capire che si è connesso
 
-    public void subscribeToSleepCommands() {
-        client.subscribe("smartroom/go_sleep", MqttQoS.AT_LEAST_ONCE.value(), ar -> {
-            if (ar.succeeded()) {
-                System.out.println("Iscritto a smartroom/go_sleep");
-            }
-        });
-        client.subscribe("smartroom/wake_up", MqttQoS.AT_LEAST_ONCE.value(), ar -> {
-            if (ar.succeeded()) {
-                System.out.println("Iscritto a smartroom/wake_up");
-            }
-        });
-        client.subscribe("smartroom/shutdown", MqttQoS.AT_LEAST_ONCE.value(), ar -> {
-            if (ar.succeeded()) {
-                System.out.println("Iscritto a smartroom/shutdown");
-            }
-        });
+    public void publishData() {
+        if (client.isConnected()) {
+            String topic = "smartroom/" + deviceId + "/data";
+            JsonObject payload = new JsonObject()
+                    .put("online", true)
+                    .put("deviceId", deviceId)
+                    .put("freeMemoryMB", Runtime.getRuntime().freeMemory() / (1024 * 1024))
+                    .put("totalMemoryMB", Runtime.getRuntime().totalMemory() / (1024 * 1024))
+                    .put("os", System.getProperty("os.name"))
+                    .put("timestamp", System.currentTimeMillis());
+
+            client.publish(
+                    topic,
+                    Buffer.buffer(payload.encode()),
+                    MqttQoS.AT_LEAST_ONCE,
+                    false,
+                    false);
+
+            System.out.println("MQTT online status pubblicato");
+        } else {
+            System.out.println("MQTT non connesso (data)");
+        }
+    }
+
+    // Metodo per iscriversi ai topic su cui deve ricevere dati e gestisce anche la
+    // ricezione dei messaggi su di essi
+    public void subscribeToTopics() {
+        client.subscribe(sleepTopic, MqttQoS.AT_LEAST_ONCE.value());
+        client.subscribe(wakeTopic, MqttQoS.AT_LEAST_ONCE.value());
+        client.subscribe(shutdownTopic, MqttQoS.AT_LEAST_ONCE.value());
 
         client.publishHandler(msg -> {
             String payload = msg.payload().toString().toLowerCase().trim();
             String topic = msg.topicName();
             System.out.println("Ricevuto comando MQTT: " + payload + "su topic " + topic);
 
-            if (topic.contains("shutdown")) {
+            switch (topic) {
+                case shutdownTopic:
 
-                try {
-                    Process process = Runtime.getRuntime().exec("sudo shutdown -h now");
-                } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                System.out.println("Raspberry Pi in spegnimento...");
+                    try {
+                        Process process = Runtime.getRuntime().exec("sudo shutdown -h now");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    System.out.println("Raspberry Pi in spegnimento...");
 
-            } else if (topic.contains("wake_up")) {
-                vertx.executeBlocking(promise -> {
-                    executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
-                    manager.startPlayVideoApp(false);
-                    promise.complete();
-                }, false, res -> {
-                });
+                    break;
+                case sleepTopic:
 
-            } else if (topic.contains("go_sleep")) {
-                vertx.executeBlocking(promise -> {
-                    executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
-                    manager.stopPlayVideoApp();
-                    promise.complete();
-                }, false, res -> {
-                    // Niente da fare nel callback, solo per non bloccare
-                });
+                    vertx.executeBlocking(promise -> {
+                        manager.stopPlayVideoApp();
+                        promise.complete();
+                    }, false, res -> {
+                        // Niente da fare nel callback, solo per non bloccare
+                    });
+
+                    break;
+                case wakeTopic:
+
+                    vertx.executeBlocking(promise -> {
+                        manager.startPlayVideoApp(false);
+                        promise.complete();
+                    }, false, res -> {
+                    });
+
+                    break;
+
+                default:
+                    System.out.println("Topic non ricoosciuto");
+                    break;
             }
 
         });
-    }
-
-    public boolean isConnected() {
-        return client.isConnected();
-    }
-
-    private String getLocalIpAddress() {
-        try {
-            return InetAddress.getLocalHost().getHostAddress();
-        } catch (UnknownHostException e) {
-            return "unknown";
-        }
-    }
-
-    public void executeScript(String path) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("/bin/bash", path);
-            pb.inheritIO(); // facoltativo: mostra output su console Java
-            Process process = pb.start();
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                System.err.println("Errore eseguendo lo script: " + path);
-            }
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
     }
 
 }

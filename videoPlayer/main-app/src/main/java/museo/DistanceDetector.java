@@ -1,9 +1,6 @@
 package museo;
 
-import java.io.File;
-
 import com.pi4j.Pi4J;
-import com.pi4j.boardinfo.util.BoardInfoHelper;
 import com.pi4j.io.gpio.digital.*;
 import com.pi4j.util.Console;
 import com.pi4j.context.*;
@@ -14,7 +11,6 @@ public class DistanceDetector extends Thread {
 	private static final int TRIG_PIN = 23;
 	private static final int ECHO_PIN = 25;
 
-	private Console console;
 	private Context pi4j;
 	private Runnable task;
 	private double minDist;
@@ -36,19 +32,15 @@ public class DistanceDetector extends Thread {
 				.id("trig")
 				.address(TRIG_PIN);
 		trigPin = pi4j.create(trigConfig);
-		log("Detector initialed");
 
 	}
 
 	public void run() {
 		try {
-			log("started");
 			int validCount = 0; // contatore delle letture valide consecutive
 
 			while (true) {
-				// log("Get distance..");
 				double d = getDistance();
-				// log("DISTANCE: " + d);
 
 				if (d < minDist && d > 6) {
 					validCount++;
@@ -67,10 +59,6 @@ public class DistanceDetector extends Thread {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-	}
-
-	private void log(String msg) {
-		System.out.println(msg);
 	}
 
 	private double getDistance() {

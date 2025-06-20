@@ -17,9 +17,6 @@ public class MqttService {
     // video)
     private String audioTopic = "smartroom/audio/volume";
     private String plafTopic = "smartroom/plafoniera/luminosità";
-    private String lumUp = "{\"protocol\":\"NEC\",\"value\":\"0x20DFC03F\",\"bits\":32}";
-    private String lumDown = "{\"protocol\":\"NEC\",\"value\":\"0x20DFC03F\",\"bits\":32}";
-    private String plafOn = "{\"protocol\":\"NEC\",\"value\":\"0x20DF10EF\",\"bits\":32}";
 
     public MqttService(Vertx vertx, String brokerHost, int brokerPort) {
         this.client = MqttClient.create(vertx, new MqttClientOptions());

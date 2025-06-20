@@ -25,7 +25,7 @@ void setup_wifi()
   Serial.print("Connessione a ");
   Serial.println(ssid);
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect(true); // Reset connessioni precedenti
+  WiFi.disconnect(true);
   delay(1000);
   WiFi.begin(ssid, password);
 
