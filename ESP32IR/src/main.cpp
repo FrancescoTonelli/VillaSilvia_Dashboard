@@ -4,6 +4,7 @@
 #include <IRsend.h>
 #include <IRutils.h>
 #include <ArduinoJson.h>
+#include <Arduino.h>
 
 // === Configurazione Wi-Fi e MQTT ===
 const char *ssid = "RaspPi";
@@ -88,31 +89,6 @@ void callback(char *topic, byte *payload, unsigned int length)
   {
     Serial.println("Comando sconosciuto!");
   }
-
-  /*VERSIONE CON CODICI MANDATI DAL BROKER
-  StaticJsonDocument<200> doc;
-  DeserializationError error = deserializeJson(doc, jsonStr);
-  if (error)
-  {
-    Serial.print("Errore parsing JSON: ");
-    Serial.println(error.c_str());
-    return;
-  }
-
-  String protocol = doc["protocol"];
-  uint64_t value = strtoull(doc["value"], NULL, 16);
-  uint16_t bits = doc["bits"];
-
-  Serial.printf("Invio IR - Protocollo: %s, Valore: 0x%llX, Bit: %u\n", protocol.c_str(), value, bits);
-
-  if (protocol == "NEC")
-  {
-    irsend.sendNEC(value, bits);
-  }
-  else
-  {
-    Serial.println("Protocollo non supportato!");
-  }*/
 }
 
 // === Riconnessione MQTT ===
@@ -163,6 +139,10 @@ void setup()
 
 void loop()
 {
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    setup_wifi();
+  }
   if (!client.connected())
   {
     reconnect();
