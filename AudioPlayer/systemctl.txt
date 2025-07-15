@@ -20,10 +20,9 @@ Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
 [Install]
 WantedBy=multi-user.target
 
+groups villasilvia
 e non sei gia nel gruppo audio:
 sudo usermod -aG audio villasilvia
-
-
 
 
 sudo systemctl daemon-reload

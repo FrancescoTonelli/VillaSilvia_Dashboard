@@ -1,0 +1,58 @@
+
+1)
+Se Network Manager non dovesse funzionare per connettersi all hotspot del broker bisogna cambiare approccio.
+
+sudo systemctl stop NetworkManager
+sudo systemctl disable NetworkManager
+
+Opzionale
+
+sudo systemctl stop dhcpcd
+sudo systemctl disable dhcpcd
+
+
+sudo apt install isc-dhcp-client
+
+
+
+2)
+
+
+Sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=IT
+
+network={
+    ssid="Bonci_WiFi"
+    psk="BonciRoom1"
+    key_mgmt=WPA-PSK
+}
+
+
+
+3)
+
+
+sudo nano /etc/systemd/system/manual-wifi.service
+
+[Unit]
+Description=Connessione Wi-Fi manuale con wpa_supplicant e dhclient
+After=network-pre.target
+Wants=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
+ExecStartPost=/sbin/dhclient wlan0
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+
+sudo systemctl daemon-reload
+sudo systemctl enable manual-wifi.service
+sudo systemctl start manual-wifi.service
+

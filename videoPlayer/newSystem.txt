@@ -21,5 +21,5 @@ loginctl enable-linger villasilvia
 
 
 systemctl --user daemon-reload
-systemctl --user enable mqttclient.service
-systemctl --user start mqttclient.service
+systemctl --user enable videoPlayer.service
+systemctl --user start videoPlayer.service

@@ -20,7 +20,7 @@ public class Main extends Application {
     private MqttClient client;
     private AudioPlayer player = new AudioPlayer();
 
-    private final String brokerHost = "10.42.0.1";
+    private final String brokerHost = "192.168.0.2";
     private final int brokerPort = 1883;
 
     @Override
@@ -41,21 +41,18 @@ public class Main extends Application {
             if (s.succeeded()) {
                 System.out.println("Connesso al broker");
 
-                client.subscribe("smartroom/audio/volume", 1);
+                client.subscribe("bonci/audioPlayer/command", 1);
 
                 JsonObject onlinePayload = new JsonObject()
                         .put("online", true)
                         .put("deviceId", "audioPlayer")
-                        // .put("deviceName", deviceName)
-                        // .put("ipAddress", getLocalIpAddress())
-                        // .put("uptime", System.currentTimeMillis() - appStartTime)
                         .put("freeMemoryMB", Runtime.getRuntime().freeMemory() / (1024 * 1024))
                         .put("totalMemoryMB", Runtime.getRuntime().totalMemory() / (1024 * 1024))
                         .put("os", System.getProperty("os.name"))
                         .put("timestamp", System.currentTimeMillis());
 
                 client.publish(
-                        "smartroom/audio/data",
+                        "bonci/online_data",
                         Buffer.buffer(onlinePayload.encode()),
                         MqttQoS.AT_LEAST_ONCE,
                         false,
@@ -85,30 +82,39 @@ public class Main extends Application {
 
     private void handleMessage(String payload) {
         switch (payload) {
-            case "TRIGGERED":
-                triggered();
+            case "ON":
+                on();
                 break;
-            case "50":
-                volume(0.5);
+            case "OFF":
+                off();
                 break;
-            case "100":
-                volume(1.0);
+            case "PAUSE":
+                pause();
                 break;
-            case "0":
-                volume(0.0);
-                break;
+            case "SHUTDOWN":
+                shutdown();
             default:
                 System.out.println("Messaggio non riconosciuto: " + payload);
         }
     }
 
-    private void triggered() {
-        if (player.getStatus() == MediaPlayer.Status.PLAYING) {
-            player.pause();
-        } else if (player.getStatus() == MediaPlayer.Status.STOPPED) {
+    private void on() {
+        if (player.getStatus() == MediaPlayer.Status.STOPPED) {
             player.start("test.mp3");
         } else if (player.getStatus() == MediaPlayer.Status.PAUSED) {
             player.resume();
+        }
+    }
+
+    private void off() {
+        if (player.getStatus() == MediaPlayer.Status.PLAYING) {
+            player.stop();
+        }
+    }
+
+    private void pause() {
+        if (player.getStatus() == MediaPlayer.Status.PLAYING) {
+            player.pause();
         }
     }
 
@@ -125,6 +131,14 @@ public class Main extends Application {
         }
         if (vertx != null) {
             vertx.close();
+        }
+    }
+
+    public static void shutdown() {
+        try {
+            Process process = Runtime.getRuntime().exec("sudo shutdown -h now");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
