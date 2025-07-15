@@ -1,175 +1,211 @@
 package com.smartroom.server;
 
-//import com.smartroom.model.DeviceStatusManager;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
-import io.vertx.core.buffer.Buffer;
 
 public class MqttService {
 
-    private MqttClient client;
-
-    // topic su cui pubblica dati (quelli delle shelly sono mandati dalle stazioni
-    // video)
-    private String audioTopic = "smartroom/audio/volume";
-    private String plafTopic = "smartroom/plafoniera/luminosità";
+    private final MqttClient client;
+    private final String audioTopic = "bonci/audioPlayer/command"; // broker -> audioPlayer (ON,OFF,VOLUME...)
+    private final String plafTopic = "bonci/plafoniera/command"; // broker -> plafoniera (ON,OFF,LIGHT_UP......)
+    private final String videoTopic = "bonci/videoPlayer/command"; // broker -> videoPlayer
+    private final String videoEventTopic = "bonci/videoPlayer/event"; // videoPlayer -> broker (TRIGGERED,ENDED)
+    private final String powerTopic = "bonci/power/command"; // pannello -> broker (SHUTDOWN,SLEEP,WAKE_UP)
+    private final String dataTopic = "bonci/online_data"; // dispositivi -> broker (DEVICEID,IP......)
 
     public MqttService(Vertx vertx, String brokerHost, int brokerPort) {
         this.client = MqttClient.create(vertx, new MqttClientOptions());
 
-        client.connect(brokerPort, brokerHost, s -> {
-            if (s.succeeded()) {
-                System.out.println("MQTT connected to " + brokerHost + ":" + brokerPort);
-
-                // topic su cui deve ricevere dati
-                client.subscribe("smartroom/+/data", 0);
-                client.subscribe("smartroom/+/videoPlayer/triggered", 0);
-                client.subscribe("smartroom/+/videoPlayer/ended", 0);
-                client.subscribe("smartroom/shutdown", 0);
-                client.subscribe("smartroom/go_sleep", 0);
-                client.subscribe("smartroom/wake_up", 0);
-
-                // gestisce la recezione dei messaggi ricevuti sui topic sopra elencati
-                client.publishHandler(message -> {
-                    String topic = message.topicName();
-                    String payload = message.payload().toString("UTF-8");
-                    JsonObject data = new JsonObject(payload);
-
-                    String deviceId = data.getString("deviceId");
-
-                    if (topic.contains("triggered")) {
-                        System.out.println("Dispositivo triggerato: " + data.encodePrettily());
-
-                        if (deviceId.equals("videoPlayer1")) {
-                            publish(plafTopic, "LIGHT_DOWN");
-                            publish(audioTopic, "50");
-                        }
-
-                        JsonArray lights = data.getJsonArray("lights");
-                        if (lights != null) {
-                            shellyManager(lights, vertx);
-                        }
-                    } else if (topic.contains("ended")) {
-                        System.out.println("Video terminato: " + data.encodePrettily());
-
-                        switch (deviceId) {
-
-                            case "videoPlayer1":
-                                System.out.println("Ultima stazione video terminata: " + deviceId);
-                                publish(plafTopic, "LIGHT_UP");
-                                publish(audioTopic, "100");
-                                break;
-
-                            default:
-                                System.out.println("Altra stazione video terminata " + deviceId);
-                        }
-
-                    } else if (topic.contains("data")) {
-                        if (deviceId != null) {
-                            // DeviceStatusManager.updateDeviceStatus(deviceId, data);
-                            System.out.println("Aggiornato stato di: " + deviceId);
-                        }
-
-                        if (deviceId.contains("audioPlayer")) {
-                            System.out.println("Stazione audio connessa");
-                            publish(audioTopic, "TRIGGERED");
-                            publish(audioTopic, "100");
-                        }
-
-                        if (deviceId.contains("plafoniera")) {
-                            System.out.println("Plafoniera connessa");
-                            publish(plafTopic, "ON");
-                        }
-
-                        if (deviceId.contains("videoPlayer")) {
-                            System.out.println("Stazione video connessa");
-                        }
-
-                    } else if (topic.contains("shutdown")) {
-                        try {
-                            Process process = Runtime.getRuntime().exec("sudo shutdown -h now");
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        System.out.println("Raspberry Pi in spegnimento...");
-                    } else if (topic.contains("go_sleep")) {
-                        publish(audioTopic, "0");
-                        publish(plafTopic, "OFF");
-                    } else if (topic.contains("wake_up")) {
-                        publish(audioTopic, "100");
-                        publish(plafTopic, "ON");
-                    }
-                });
-
+        client.connect(brokerPort, brokerHost, result -> {
+            if (result.succeeded()) {
+                System.out.println("MQTT connesso a " + brokerHost + ":" + brokerPort);
+                subscribeToTopics();
+                setupMessageHandler(vertx);
             } else {
-                System.err.println("MQTT connection failed: " + s.cause().getMessage());
+                System.err.println("Connessione MQTT fallita: " + result.cause().getMessage());
             }
         });
-
     }
 
-    // metodo usato per pubblicare un messaggio su un topic
+    // Iscrizione ai topic MQTT
+    private void subscribeToTopics() {
+        client.subscribe(dataTopic, 0);
+        client.subscribe(videoEventTopic, 0);
+        client.subscribe(powerTopic, 0);
+    }
+
+    // Gestione dei messaggi MQTT ricevuti
+    private void setupMessageHandler(Vertx vertx) {
+        client.publishHandler(message -> {
+            String topic = message.topicName();
+            String payload = message.payload().toString("UTF-8");
+            String deviceId;
+
+            JsonObject data;
+            try {
+                data = new JsonObject(payload);
+            } catch (Exception e) {
+                System.err.println("Payload non valido (non JSON) su topic " + topic + ": " + payload);
+                return;
+            }
+
+            switch (topic) {
+                // topic per ricevere i comandi di spegnimento, sleep e wake
+                case powerTopic:
+                    String command = data.getString("command");
+                    if (command == null) {
+                        System.err.println("Comando assente in JSON su topic 'control': " + payload);
+                        return;
+                    }
+                    handleControl(command);
+                    break;
+                // topic per ricevere gli eventi del videoplayer sulla riproduzione video
+                // (triggered,ended)
+                case videoEventTopic:
+                    deviceId = data.getString("deviceId");
+                    String event = data.getString("event");
+                    if (deviceId == null) {
+                        System.err.println("deviceId mancante nel messaggio JSON su topic: " + topic);
+                        return;
+                    }
+                    if (event.equals("triggered")) {
+                        handleTriggered(deviceId, data, vertx);
+                    } else if (event.equals("ended")) {
+                        handleEnded(deviceId);
+                    }
+                    break;
+                // topic per ricevere lo stato dei device appena si connettono alla rete (si
+                // distinguono per deviceId)
+                case dataTopic:
+                    deviceId = data.getString("deviceId");
+                    if (deviceId == null) {
+                        System.err.println("deviceId mancante nel messaggio JSON su topic: " + topic);
+                        return;
+                    }
+                    handleData(deviceId, data);
+                    break;
+
+            }
+
+        });
+    }
+
+    // Pubblica un messaggio su un topic
     public void publish(String topic, String message) {
         if (client.isConnected()) {
-            client.publish(
-                    topic,
-                    Buffer.buffer(message),
-                    MqttQoS.AT_LEAST_ONCE,
-                    false,
-                    false);
+            client.publish(topic, Buffer.buffer(message), MqttQoS.AT_LEAST_ONCE, false, false);
             System.out.println("Pubblicato su " + topic + ": " + message);
         } else {
             System.err.println("Client MQTT non connesso!");
         }
     }
 
-    // metodo usato per gestire i tempi di accensione e spegnimento delle shelly
+    // Gestione Shelly con delay e auto-off
     public void shellyManager(JsonArray lights, Vertx vertx) {
-        lights.forEach(light -> {
-            JsonObject lightObj = (JsonObject) light;
+        lights.forEach(entry -> {
+            JsonObject light = (JsonObject) entry;
+            String id = light.getString("id");
+            int delay = light.getInteger("delay", 0);
+            int offAfter = light.getInteger("offAfter", 0);
+            String topic = id + "/rpc";
 
-            String lightId = lightObj.getString("id");
-            int delaySeconds = lightObj.getInteger("delay", 0);
-            Integer offAfter = lightObj.getInteger("offAfter", 0);
-            String lightTopic = lightId + "/rpc";
-
-            if (delaySeconds >= 1) {
-                vertx.setTimer(delaySeconds * 1000L, tid -> {
-                    JsonObject accendi = new JsonObject()
-                            .put("id", 1)
-                            .put("src", "server")
-                            .put("method", "Switch.Set")
-                            .put("params", new JsonObject()
-                                    .put("id", 0)
-                                    .put("on", true));
-
-                    publish(lightTopic, accendi.encode());
-
-                    System.out.println("Luce Shelly accesa su topic: " + lightTopic);
-                });
+            if (delay > 0) {
+                vertx.setTimer(delay * 1000L, t -> publishShellyCommand(topic, true));
             }
-
-            if (offAfter >= 1) {
-                vertx.setTimer(offAfter * 1000L, offTid -> {
-                    JsonObject spegni = new JsonObject()
-                            .put("id", 1)
-                            .put("src", "server")
-                            .put("method", "Switch.Set")
-                            .put("params", new JsonObject()
-                                    .put("id", 0)
-                                    .put("on", false));
-
-                    publish(lightTopic, spegni.encode());
-
-                    System.out.println("Luce Shelly spenta su topic: " + lightTopic);
-                });
+            if (offAfter > 0) {
+                vertx.setTimer(offAfter * 1000L, t -> publishShellyCommand(topic, false));
             }
-
         });
+    }
+
+    private void publishShellyCommand(String topic, boolean on) {
+        JsonObject command = new JsonObject()
+                .put("id", 1)
+                .put("src", "server")
+                .put("method", "Switch.Set")
+                .put("params", new JsonObject().put("id", 0).put("on", on));
+
+        publish(topic, command.encode());
+        System.out.println("Luce Shelly " + (on ? "accesa" : "spenta") + " su topic: " + topic);
+    }
+
+    // Handlers dei vari eventi
+
+    private void handleTriggered(String deviceId, JsonObject data, Vertx vertx) {
+        System.out.println("Trigger ricevuto da " + deviceId + ": " + data.encodePrettily());
+
+        if ("videoPlayer1".equals(deviceId)) {
+            publish(plafTopic, "LIGHT_DOWN");
+            publish(audioTopic, "OFF");
+        }
+
+        JsonArray lights = data.getJsonArray("lights");
+        if (lights != null) {
+            shellyManager(lights, vertx);
+        }
+    }
+
+    private void handleEnded(String deviceId) {
+        System.out.println("Video terminato su " + deviceId);
+        if ("videoPlayer4".equals(deviceId)) {
+            publish(plafTopic, "LIGHT_UP");
+            publish(audioTopic, "ON");
+        }
+    }
+
+    private void handleData(String deviceId, JsonObject data) {
+        if (deviceId != null) {
+            // DeviceStatusManager.updateDeviceStatus(deviceId, data);
+            System.out.println("Stato aggiornato per: " + deviceId);
+        }
+
+        if (deviceId.contains("audioPlayer")) {
+            System.out.println("Audio player connesso");
+            publish(audioTopic, "ON");
+        }
+
+        if (deviceId.contains("plafoniera")) {
+            System.out.println("Plafoniera connessa");
+            publish(plafTopic, "STARTING");
+            // oltre ad accenderla, ripristina i valori (luminosità, colore), infatti
+            // potrebbe essere stata modificata precedentemente in modo manuale.
+        }
+
+        if (deviceId.contains("videoPlayer")) {
+            System.out.println("Video player connesso");
+        }
+    }
+
+    private void handleControl(String command) {
+        switch (command) {
+            case "shutdown":
+                publish(audioTopic, "SHUTDOWN");
+                publish(videoTopic, "SHUTDOWN");
+                try {
+                    Runtime.getRuntime().exec("sudo shutdown -h now");
+                    System.out.println("Spegnimento Raspberry Pi in corso...");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                break;
+            case "sleep":
+                publish(audioTopic, "OFF");
+                publish(plafTopic, "OFF");
+                publish(videoTopic, "SLEEP");
+                break;
+            case "wake":
+                publish(audioTopic, "ON");
+                publish(plafTopic, "ON");
+                publish(videoTopic, "WAKE");
+                break;
+            default:
+                System.err.println("Comando sconosciuto su topic 'control': " + command);
+        }
     }
 
 }

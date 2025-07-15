@@ -13,6 +13,16 @@ Protocollo: NEC
 Codice HEX: 0x807F10EF
 Bit: 32
 
+WARM
+Protocollo: NEC
+Codice HEX: 0x807FA05F
+Bit: 32
+
+
+COLD
+Protocollo: NEC
+Codice HEX: 0x807F609F
+Bit: 32
 
 
 

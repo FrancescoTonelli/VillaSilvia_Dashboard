@@ -7,9 +7,9 @@
 #include <Arduino.h>
 
 // === Configurazione Wi-Fi e MQTT ===
-const char *ssid = "RaspPi";
-const char *password = "VillaRasp1";
-const char *mqtt_server = "10.42.0.1";
+const char *ssid = "Bonci_WiFi";
+const char *password = "BonciRoom1";
+const char *mqtt_server = "192.168.0.2";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -32,7 +32,7 @@ void setup_wifi()
 
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    delay(10000);
     Serial.print(".");
   }
 
@@ -40,6 +40,42 @@ void setup_wifi()
   Serial.println("WiFi connesso");
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
+}
+
+void on()
+{
+  irsend.sendNEC(0x807F807F, 32);
+  Serial.println("Inviato comando IR: ON");
+}
+
+void off()
+{
+  irsend.sendNEC(0x807F807F, 32);
+  Serial.println("Inviato comando IR: OFF");
+}
+
+void light_up()
+{
+  irsend.sendNEC(0x807FC03F, 32);
+  Serial.println("Inviato comando IR: LIGHT UP");
+}
+
+void light_down()
+{
+  irsend.sendNEC(0x807F10EF, 32);
+  Serial.println("Inviato comando IR: LIGHT DOWN");
+}
+
+void warm_up()
+{
+  irsend.sendNEC(0x807FA05F, 32);
+  Serial.println("Inviato comando IR: WARM UP");
+}
+
+void cold_up()
+{
+  irsend.sendNEC(0x807F609F, 32);
+  Serial.println("Inviato comando IR: COLD UP");
 }
 
 // === Callback MQTT ===
@@ -56,34 +92,58 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
   Serial.println(command);
 
-  // Comandi supportati: ON, OFF, LIGHT UP, LIGHT DOWN
-  if (command == "ON")
+  if (command == "STARTING")
   {
-    irsend.sendNEC(0x807F807F, 32);
-    Serial.println("Inviato comando IR: ON");
+    on();
+    delay(250);
+    for (int i = 0; i < 9; i++)
+    {
+      light_up();
+      delay(500);
+    }
+    for (int i = 0; i < 3; i++)
+    {
+      light_down();
+      delay(500);
+    }
+    for (int i = 0; i < 8; i++)
+    {
+      warm_up();
+      delay(500);
+    }
+  }
+  else if (command == "ON")
+  {
+    on();
   }
   else if (command == "OFF")
   {
-    irsend.sendNEC(0x807F807F, 32);
-    Serial.println("Inviato comando IR: OFF");
+    off();
   }
   else if (command == "LIGHT_UP")
   {
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 6; i++)
     {
-      irsend.sendNEC(0x807FC03F, 32);
-      Serial.println("Inviato comando IR: LIGHT UP");
+      light_up();
       delay(500);
     }
   }
   else if (command == "LIGHT_DOWN")
   {
-    for (int i = 0; i < 5; i++)
+    // dalla luminosità massima si abbassa di 5 tacche
+    for (int i = 0; i < 6; i++)
     {
-      irsend.sendNEC(0x807F10EF, 32);
-      Serial.println("Inviato comando IR: LIGHT DOWN");
+      light_down();
       delay(500);
     }
+  }
+  else if (command = "WARM_UP")
+  {
+    warm_up();
+  }
+  else if (command = "COLD_UP")
+  {
+    cold_up();
   }
   else
   {
@@ -102,9 +162,9 @@ void reconnect()
       Serial.println("connesso");
 
       // Iscrizione al topic di controllo
-      client.subscribe("smartroom/plafoniera/luminosità");
+      client.subscribe("bonci/plafoniera/command");
 
-      // === Invio messaggio JSON al topic smartroom/plafoniera/data ===
+      // === Invio messaggio JSON ===
       StaticJsonDocument<200> doc;
       doc["online"] = true;
       doc["deviceId"] = "plafoniera";
@@ -113,7 +173,7 @@ void reconnect()
 
       char buffer[256];
       size_t n = serializeJson(doc, buffer);
-      client.publish("smartroom/plafoniera/data", buffer, n);
+      client.publish("bonci/online_data", buffer, n);
 
       Serial.println("Messaggio di connessione inviato");
     }
@@ -121,8 +181,8 @@ void reconnect()
     {
       Serial.print("Errore, rc=");
       Serial.print(client.state());
-      Serial.println(" riprovo in 5 secondi");
-      delay(5000);
+      Serial.println(" riprovo in 10 secondi");
+      delay(10000);
     }
   }
 }

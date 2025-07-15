@@ -17,9 +17,9 @@ public class MqttHandler {
     private final Vertx vertx;
     private final ProcessManager manager;
 
-    private final String shutdownTopic = "smartroom/shutdown";
-    private final String wakeTopic = "smartroom/wake_up";
-    private final String sleepTopic = "smartroom/go_sleep";
+    private final String commandTopic = "bonci/videoPlayer/command"; // broker -> videoPlayer
+    private final String eventTopic = "bonci/videoPlayer/event"; // videoPlayer -> broker
+    private final String dataTopic = "bonci/online_data"; // videoPlayer -> broker
 
     public MqttHandler(Vertx vertx) {
         this.vertx = vertx;
@@ -29,7 +29,7 @@ public class MqttHandler {
     }
 
     public void attemptConnection() {
-        client.connect(1883, "10.42.0.1", ar -> {
+        client.connect(1883, "192.168.0.2", ar -> {
             if (ar.succeeded()) {
                 System.out.println("Connesso al broker Mqtt");
                 subscribeToTopics();
@@ -53,12 +53,11 @@ public class MqttHandler {
     // Metodo per comunicare al broker l'inizio della riproduzione del video
     public void publishTriggered(JsonArray lights) {
         if (client.isConnected()) {
-            String topic = "smartroom/" + deviceId + "/videoPlayer/triggered";
             JsonObject payload = new JsonObject()
                     .put("deviceId", deviceId)
                     .put("event", "triggered")
                     .put("lights", lights);
-            client.publish(topic,
+            client.publish(eventTopic,
                     Buffer.buffer(payload.encode()),
                     MqttQoS.AT_LEAST_ONCE,
                     false,
@@ -72,11 +71,10 @@ public class MqttHandler {
     // Metodo per comunicare al broker la conclusione della riproduzione del video
     public void publishEnded() {
         if (client.isConnected()) {
-            String topic = "smartroom/" + deviceId + "/videoPlayer/ended";
             JsonObject payload = new JsonObject()
                     .put("deviceId", deviceId)
                     .put("event", "ended");
-            client.publish(topic,
+            client.publish(eventTopic,
                     Buffer.buffer(payload.encode()),
                     MqttQoS.AT_LEAST_ONCE,
                     false,
@@ -92,7 +90,6 @@ public class MqttHandler {
 
     public void publishData() {
         if (client.isConnected()) {
-            String topic = "smartroom/" + deviceId + "/data";
             JsonObject payload = new JsonObject()
                     .put("online", true)
                     .put("deviceId", deviceId)
@@ -102,7 +99,7 @@ public class MqttHandler {
                     .put("timestamp", System.currentTimeMillis());
 
             client.publish(
-                    topic,
+                    dataTopic,
                     Buffer.buffer(payload.encode()),
                     MqttQoS.AT_LEAST_ONCE,
                     false,
@@ -114,52 +111,45 @@ public class MqttHandler {
         }
     }
 
-    // Metodo per iscriversi ai topic su cui deve ricevere dati e gestisce anche la
-    // ricezione dei messaggi su di essi
+    // Metodo per iscriversi al topic su cui deve ricevere dati e gestisce anche la
+    // ricezione dei messaggi su di esso
     public void subscribeToTopics() {
-        client.subscribe(sleepTopic, MqttQoS.AT_LEAST_ONCE.value());
-        client.subscribe(wakeTopic, MqttQoS.AT_LEAST_ONCE.value());
-        client.subscribe(shutdownTopic, MqttQoS.AT_LEAST_ONCE.value());
+        client.subscribe(commandTopic, MqttQoS.AT_LEAST_ONCE.value());
 
         client.publishHandler(msg -> {
-            String payload = msg.payload().toString().toLowerCase().trim();
+            String payload = msg.payload().toString();
             String topic = msg.topicName();
             System.out.println("Ricevuto comando MQTT: " + payload + "su topic " + topic);
 
-            switch (topic) {
-                case shutdownTopic:
+            if (topic.equals(commandTopic)) {
+                switch (payload) {
+                    case "SHUTDOWN":
+                        try {
+                            Process process = Runtime.getRuntime().exec("sudo shutdown -h now");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case "SLEEP":
+                        vertx.executeBlocking(promise -> {
+                            manager.stopPlayVideoApp();
+                            promise.complete();
+                        }, false, res -> {
+                            // Niente da fare nel callback, solo per non bloccare
+                        });
+                        break;
+                    case "WAKE":
+                        vertx.executeBlocking(promise -> {
+                            manager.startPlayVideoApp(false);
+                            promise.complete();
+                        }, false, res -> {
+                        });
+                        break;
 
-                    try {
-                        Process process = Runtime.getRuntime().exec("sudo shutdown -h now");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println("Raspberry Pi in spegnimento...");
-
-                    break;
-                case sleepTopic:
-
-                    vertx.executeBlocking(promise -> {
-                        manager.stopPlayVideoApp();
-                        promise.complete();
-                    }, false, res -> {
-                        // Niente da fare nel callback, solo per non bloccare
-                    });
-
-                    break;
-                case wakeTopic:
-
-                    vertx.executeBlocking(promise -> {
-                        manager.startPlayVideoApp(false);
-                        promise.complete();
-                    }, false, res -> {
-                    });
-
-                    break;
-
-                default:
-                    System.out.println("Topic non ricoosciuto");
-                    break;
+                    default:
+                        System.out.println("Comando non ricoosciuto");
+                        break;
+                }
             }
 
         });
