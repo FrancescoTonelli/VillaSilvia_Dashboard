@@ -32,4 +32,7 @@ async function fetchDevices() {
     }
 }
 
-fetchDevices();
+document.addEventListener("DOMContentLoaded", function () {
+    fetchDevices();
+})
+

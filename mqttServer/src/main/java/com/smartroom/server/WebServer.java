@@ -5,6 +5,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import com.smartroom.model.DeviceStatusManager;
+import io.vertx.core.json.JsonObject;
 
 public class WebServer {
 
@@ -18,9 +19,11 @@ public class WebServer {
 
         // Endpoint JSON API (es. /devices)
         router.get("/devices").handler(ctx -> {
+            JsonObject response = new JsonObject();
+            DeviceStatusManager.getAllDevices().forEach(response::put);
             ctx.response()
                     .putHeader("content-type", "application/json")
-                    .end(DeviceStatusManager.getAllDevices().toString());
+                    .end(response.encodePrettily());
         });
 
         router.get("/devices/:id").handler(ctx -> {

@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
+import com.smartroom.model.DeviceStatusManager;
 
 public class MqttService {
 
@@ -160,7 +161,7 @@ public class MqttService {
 
     private void handleData(String deviceId, JsonObject data) {
         if (deviceId != null) {
-            // DeviceStatusManager.updateDeviceStatus(deviceId, data);
+            DeviceStatusManager.updateDeviceStatus(deviceId, data);
             System.out.println("Stato aggiornato per: " + deviceId);
         }
 
