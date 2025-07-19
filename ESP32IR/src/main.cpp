@@ -11,6 +11,19 @@ const char *ssid = "Bonci_WiFi";
 const char *password = "BonciRoom1";
 const char *mqtt_server = "192.168.0.2";
 
+const char *deviceId = "plafoniera1";
+
+const char *publicTopic = "bonci/plafoniere/command";           // topic in ascolto tutte le plafoniere
+String privateTopic = "bonci/" + String(deviceId) + "/command"; // topic in ascolto solo questa plafoniera
+const char *dataTopic = "bonci/online_data";                    // topic per pubblicare lo stato online
+
+const uint32_t CODE_ON = 0x807F807F;
+const uint32_t CODE_OFF = 0x807F807F;
+const uint32_t CODE_LIGHT_UP = 0x807FC03F;
+const uint32_t CODE_LIGHT_DOWN = 0x807F10EF;
+const uint32_t CODE_WARM_UP = 0x807FA05F;
+const uint32_t CODE_COLD_UP = 0x807F609F;
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -42,49 +55,9 @@ void setup_wifi()
   Serial.println(WiFi.localIP());
 }
 
-void on()
-{
-  irsend.sendNEC(0x807F807F, 32);
-  Serial.println("Inviato comando IR: ON");
-}
-
-void off()
-{
-  irsend.sendNEC(0x807F807F, 32);
-  Serial.println("Inviato comando IR: OFF");
-}
-
-void light_up()
-{
-  irsend.sendNEC(0x807FC03F, 32);
-  Serial.println("Inviato comando IR: LIGHT UP");
-}
-
-void light_down()
-{
-  irsend.sendNEC(0x807F10EF, 32);
-  Serial.println("Inviato comando IR: LIGHT DOWN");
-}
-
-void warm_up()
-{
-  irsend.sendNEC(0x807FA05F, 32);
-  Serial.println("Inviato comando IR: WARM UP");
-}
-
-void cold_up()
-{
-  irsend.sendNEC(0x807F609F, 32);
-  Serial.println("Inviato comando IR: COLD UP");
-}
-
 // === Callback MQTT ===
 void callback(char *topic, byte *payload, unsigned int length)
 {
-  Serial.print("Messaggio ricevuto su topic [");
-  Serial.print(topic);
-  Serial.print("]: ");
-
   String command;
   for (unsigned int i = 0; i < length; i++)
   {
@@ -92,58 +65,63 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
   Serial.println(command);
 
+  Serial.print("Messaggio ricevuto su topic [");
+  Serial.print(topic);
+  Serial.print("]: ");
+  Serial.print("Comando :");
+  Serial.print(command);
+
   if (command == "STARTING")
   {
-    on();
+    irsend.sendNEC(CODE_ON, 32);
     delay(250);
     for (int i = 0; i < 9; i++)
     {
-      light_up();
+      irsend.sendNEC(CODE_LIGHT_UP, 32);
       delay(500);
     }
     for (int i = 0; i < 3; i++)
     {
-      light_down();
+      irsend.sendNEC(CODE_LIGHT_DOWN, 32);
       delay(500);
     }
     for (int i = 0; i < 8; i++)
     {
-      warm_up();
+      irsend.sendNEC(CODE_WARM_UP, 32);
       delay(500);
     }
   }
   else if (command == "ON")
   {
-    on();
+    irsend.sendNEC(CODE_ON, 32);
   }
   else if (command == "OFF")
   {
-    off();
+    irsend.sendNEC(CODE_OFF, 32);
   }
   else if (command == "LIGHT_UP")
   {
     for (int i = 0; i < 6; i++)
     {
-      light_up();
+      irsend.sendNEC(CODE_LIGHT_UP, 32);
       delay(500);
     }
   }
   else if (command == "LIGHT_DOWN")
   {
-    // dalla luminosità massima si abbassa di 5 tacche
     for (int i = 0; i < 6; i++)
     {
-      light_down();
+      irsend.sendNEC(CODE_LIGHT_DOWN, 32);
       delay(500);
     }
   }
-  else if (command = "WARM_UP")
+  else if (command == "WARM_UP")
   {
-    warm_up();
+    irsend.sendNEC(CODE_WARM_UP, 32);
   }
-  else if (command = "COLD_UP")
+  else if (command == "COLD_UP")
   {
-    cold_up();
+    irsend.sendNEC(CODE_COLD_UP, 32);
   }
   else
   {
@@ -157,23 +135,24 @@ void reconnect()
   while (!client.connected())
   {
     Serial.print("Tentativo connessione MQTT...");
-    if (client.connect("ESP32Client"))
+    if (client.connect(deviceId))
     {
       Serial.println("connesso");
 
       // Iscrizione al topic di controllo
-      client.subscribe("bonci/plafoniera/command");
+      client.subscribe(publicTopic);
+      client.subscribe(privateTopic.c_str());
 
       // === Invio messaggio JSON ===
       StaticJsonDocument<200> doc;
       doc["online"] = true;
-      doc["deviceId"] = "plafoniera";
+      doc["deviceId"] = deviceId;
       doc["ip"] = WiFi.localIP().toString();
       doc["timestamp"] = millis(); // tempo dal boot in ms
 
       char buffer[256];
       size_t n = serializeJson(doc, buffer);
-      client.publish("bonci/online_data", buffer, n);
+      client.publish(dataTopic, buffer, n);
 
       Serial.println("Messaggio di connessione inviato");
     }

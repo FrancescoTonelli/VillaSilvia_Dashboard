@@ -1,6 +1,5 @@
 package museo;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -12,9 +11,13 @@ import museo.UsbMediaScanner.ScanResult;
 
 public class PlayVideo {
 
+    // Lo schermo mostra un immagine (che nelle stazioni di mezzo è una copertina
+    // nera) SHOW_THUMBNAIL, poi viene riprodotto il video PLAYING_VIDEO e poi la
+    // stazione viene disabilitata mostrando schermata nera DISABLED
     private enum State {
         SHOW_THUMBNAIL,
-        PLAYING_VIDEO
+        PLAYING_VIDEO,
+        DISABLED
     }
 
     private State currentState = State.SHOW_THUMBNAIL;
@@ -22,7 +25,8 @@ public class PlayVideo {
     private String activeVideoPath = null;
     private String activeThumbnailPath = null;
     private String activeVideoName = null;
-    private String blackPath = "image/black.jpeg";
+
+    private String blackPath = "/home/villasilvia/Desktop/condivisa/videoPlayer/main-app/image/black.jpeg";
 
     private List<LightConfig> lightConfigList = new ArrayList<>();
 
@@ -33,8 +37,19 @@ public class PlayVideo {
     public void start() {
         System.out.println("Avvio sistema...");
 
+        // rimuove il cursore dallo schermo
+        try {
+            new ProcessBuilder("unclutter", "-display", ":0", "-idle", "0").start();
+            System.out.println("Cursore nascosto con unclutter.");
+        } catch (IOException e) {
+            System.err.println("Errore avvio unclutter: " + e.getMessage());
+        }
+
         String user = System.getProperty("user.name");
         ScanResult result = null;
+
+        // non parte fino a quando non trova una USB con i path al .mp4, .jpg e il json
+        // di configurazione
 
         while (result == null || !result.isComplete()) {
             result = UsbMediaScanner.scanForMedia(user);
@@ -84,28 +99,19 @@ public class PlayVideo {
         }
     }
 
-    private void showBlack() throws InterruptedException {
-
-        try {
-            Runtime.getRuntime().exec("pkill feh");
-            new ProcessBuilder("feh", "-F", "-Z", blackPath).start();
-        } catch (IOException e) {
-            System.err.println("Errore visualizzazione miniatura: " + e.getMessage());
-        }
-
-    }
-
     private void warmup() {
+        // All'inizio apre e chiude subito i due processi per "riscaldare" l'ambiente,
+        // dalla seconda volta l'aperturà sarà infatti più veloce
         try {
             System.out.println("Esecuzione warm-up di feh e mpv...");
 
             // Mostra un'immagine con feh e la chiude subito
-            new ProcessBuilder("bash", "-c", "feh -F -Z " + activeThumbnailPath + " & sleep 1 && pkill feh").start()
+            new ProcessBuilder("bash", "-c", "feh -F -Z " + activeThumbnailPath + " & sleep 3 && pkill feh").start()
                     .waitFor();
 
             // Esegue mpv e lo chiude subito
             new ProcessBuilder("bash", "-c",
-                    "mpv --fs --no-audio --video-rotate=90 " + activeVideoPath + " & sleep 1 && pkill mpv").start()
+                    "mpv --fs --no-audio --video-rotate=90 " + activeVideoPath + " & sleep 10 && pkill mpv").start()
                     .waitFor();
 
             System.out.println("Warm-up completato.");
@@ -122,14 +128,6 @@ public class PlayVideo {
 
     private void playVideo() {
         currentState = State.PLAYING_VIDEO;
-        /*
-         * try {
-         * showBlack();
-         * } catch (InterruptedException e) {
-         * // TODO Auto-generated catch block
-         * e.printStackTrace();
-         * }
-         */
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
@@ -145,17 +143,27 @@ public class PlayVideo {
             Process videoProcess = pb.start();
             Thread.sleep(3000);
             notifyEvent("triggered");
-            // Runtime.getRuntime().exec("pkill feh");
 
             videoProcess.waitFor();
 
             notifyEvent("ended");
-            currentState = State.SHOW_THUMBNAIL;
-            // showThumbnail();
+            currentState = State.DISABLED;
+            showBlack();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void showBlack() throws InterruptedException {
+
+        try {
+            Runtime.getRuntime().exec("pkill feh");
+            new ProcessBuilder("feh", "-F", "-Z", blackPath).start();
+        } catch (IOException e) {
+            System.err.println("Errore visualizzazione miniatura: " + e.getMessage());
+        }
+
     }
 
     private void notifyEvent(String event) {

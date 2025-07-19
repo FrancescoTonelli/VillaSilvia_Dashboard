@@ -43,13 +43,14 @@ After=network-pre.target
 Wants=network.target
 
 [Service]
-Type=oneshot
-ExecStart=/sbin/wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
-ExecStartPost=/sbin/dhclient wlan0
-RemainAfterExit=yes
+Type=simple
+ExecStart=/usr/bin/bash -c 'wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf && dhclient wlan0'
+Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
+
 
 
 sudo systemctl daemon-reload

@@ -13,11 +13,15 @@ public class MqttService {
 
     private final MqttClient client;
     private final String audioTopic = "bonci/audioPlayer/command"; // broker -> audioPlayer (ON,OFF,VOLUME...)
-    private final String plafTopic = "bonci/plafoniera/command"; // broker -> plafoniera (ON,OFF,LIGHT_UP......)
+    private final String plafTopic = "bonci/plafoniere/command"; // broker -> plafoniere (ON,OFF,LIGHT_UP......)
     private final String videoTopic = "bonci/videoPlayer/command"; // broker -> videoPlayer
     private final String videoEventTopic = "bonci/videoPlayer/event"; // videoPlayer -> broker (TRIGGERED,ENDED)
     private final String powerTopic = "bonci/power/command"; // pannello -> broker (SHUTDOWN,SLEEP,WAKE_UP)
     private final String dataTopic = "bonci/online_data"; // dispositivi -> broker (DEVICEID,IP......)
+
+    private Boolean pianoAlreadyTriggered = false;
+    // si riferisce alla stazione del pianoforte, infatti il suo sonar
+    // può essere triggerato 2 volte
 
     public MqttService(Vertx vertx, String brokerHost, int brokerPort) {
         this.client = MqttClient.create(vertx, new MqttClientOptions());
@@ -33,7 +37,7 @@ public class MqttService {
         });
     }
 
-    // Iscrizione ai topic MQTT
+    // Iscrizione ai topic MQTT da cui deve ricevere messaggi
     private void subscribeToTopics() {
         client.subscribe(dataTopic, 0);
         client.subscribe(videoEventTopic, 0);
@@ -74,6 +78,7 @@ public class MqttService {
                         System.err.println("deviceId mancante nel messaggio JSON su topic: " + topic);
                         return;
                     }
+
                     if (event.equals("triggered")) {
                         handleTriggered(deviceId, data, vertx);
                     } else if (event.equals("ended")) {
@@ -106,17 +111,17 @@ public class MqttService {
         }
     }
 
-    // Gestione Shelly con delay e auto-off
+    // Gestione Shelly con timer
     public void shellyManager(JsonArray lights, Vertx vertx) {
         lights.forEach(entry -> {
             JsonObject light = (JsonObject) entry;
             String id = light.getString("id");
-            int delay = light.getInteger("delay", 0);
+            int onAfter = light.getInteger("onAfter", 0);
             int offAfter = light.getInteger("offAfter", 0);
             String topic = id + "/rpc";
 
-            if (delay > 0) {
-                vertx.setTimer(delay * 1000L, t -> publishShellyCommand(topic, true));
+            if (onAfter > 0) {
+                vertx.setTimer(onAfter * 1000L, t -> publishShellyCommand(topic, true));
             }
             if (offAfter > 0) {
                 vertx.setTimer(offAfter * 1000L, t -> publishShellyCommand(topic, false));
@@ -139,13 +144,28 @@ public class MqttService {
 
     private void handleTriggered(String deviceId, JsonObject data, Vertx vertx) {
         System.out.println("Trigger ricevuto da " + deviceId + ": " + data.encodePrettily());
+        JsonArray lights = data.getJsonArray("lights");
 
-        if ("videoPlayer1".equals(deviceId)) {
+        if (deviceId.equals("first-videoPlayer")) {
             publish(plafTopic, "LIGHT_DOWN");
             publish(audioTopic, "OFF");
         }
 
-        JsonArray lights = data.getJsonArray("lights");
+        if (deviceId.equals("piano-videoPlayer") && pianoAlreadyTriggered) {
+            pianoAlreadyTriggered = false;
+            lights.forEach(entry -> {
+                JsonObject light = (JsonObject) entry;
+                String id = light.getString("id");
+                String topic = id + "/rpc";
+
+                publishShellyCommand(topic, false);
+            });
+            return;
+        }
+        if (deviceId.equals("piano-videoPlayer")) {
+            pianoAlreadyTriggered = true;
+        }
+
         if (lights != null) {
             shellyManager(lights, vertx);
         }
@@ -153,7 +173,7 @@ public class MqttService {
 
     private void handleEnded(String deviceId) {
         System.out.println("Video terminato su " + deviceId);
-        if ("videoPlayer4".equals(deviceId)) {
+        if (deviceId.equals("piano-videoPlayer")) {
             publish(plafTopic, "LIGHT_UP");
             publish(audioTopic, "ON");
         }
@@ -172,9 +192,8 @@ public class MqttService {
 
         if (deviceId.contains("plafoniera")) {
             System.out.println("Plafoniera connessa");
-            publish(plafTopic, "STARTING");
-            // oltre ad accenderla, ripristina i valori (luminosità, colore), infatti
-            // potrebbe essere stata modificata precedentemente in modo manuale.
+            publish("bonci/" + deviceId + "/command", "STARTING");
+            // lo manda solo alla plafoniera specifica non a tutte
         }
 
         if (deviceId.contains("videoPlayer")) {
