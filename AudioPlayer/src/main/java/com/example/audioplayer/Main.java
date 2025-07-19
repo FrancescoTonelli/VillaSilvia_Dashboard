@@ -23,6 +23,9 @@ public class Main extends Application {
     private final String brokerHost = "192.168.0.2";
     private final int brokerPort = 1883;
 
+    private final String commandTopic = "bonci/audioPlayer/command"; // broker -> audioPlayer
+    private final String dataTopic = "bonci/online_data"; // audioPlayer -> broker
+
     @Override
     public void start(Stage stage) {
         vertx = Vertx.vertx();
@@ -31,7 +34,6 @@ public class Main extends Application {
 
     private void connectToBroker() {
         client = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
-
         attemptConnection();
     }
 
@@ -41,18 +43,16 @@ public class Main extends Application {
             if (s.succeeded()) {
                 System.out.println("Connesso al broker");
 
-                client.subscribe("bonci/audioPlayer/command", 1);
+                client.subscribe(commandTopic, 1);
 
                 JsonObject onlinePayload = new JsonObject()
                         .put("online", true)
                         .put("deviceId", "audioPlayer")
-                        .put("freeMemoryMB", Runtime.getRuntime().freeMemory() / (1024 * 1024))
-                        .put("totalMemoryMB", Runtime.getRuntime().totalMemory() / (1024 * 1024))
                         .put("os", System.getProperty("os.name"))
                         .put("timestamp", System.currentTimeMillis());
 
                 client.publish(
-                        "bonci/online_data",
+                        dataTopic,
                         Buffer.buffer(onlinePayload.encode()),
                         MqttQoS.AT_LEAST_ONCE,
                         false,

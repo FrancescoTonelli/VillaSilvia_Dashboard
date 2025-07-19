@@ -1,0 +1,6 @@
+Una volta comprato il nuovo router è necessario configurarlo in questo modo:
+
+1) cambiare SSID in Bonci_WiFi
+2) cambiare password in BonciRoom1
+3) cambiare ip privato del router in 192.168.0.1 (se non lo è già)
+4) accendere il broker e, una volta connesso alla rete (farà in automatico), assegnargli l'ip statico 192.168.0.2
