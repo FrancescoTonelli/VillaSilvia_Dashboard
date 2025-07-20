@@ -19,6 +19,7 @@ public class Main extends Application {
     private Vertx vertx;
     private MqttClient client;
     private AudioPlayer player = new AudioPlayer();
+    private final String deviceId = "audioPlayer";
 
     private final String brokerHost = "192.168.0.2";
     private final int brokerPort = 1883;
@@ -33,7 +34,20 @@ public class Main extends Application {
     }
 
     private void connectToBroker() {
-        client = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
+
+        JsonObject lwt = new JsonObject()
+            .put("online", false)
+            .put("deviceId", deviceId)
+            .put("os", System.getProperty("os.name"))
+            .put("timestamp", System.currentTimeMillis());
+        
+        MqttClientOptions options = new MqttClientOptions()
+            .setAutoKeepAlive(true)
+            .setWillTopic(dataTopic)
+            .setWillMessage(Buffer.buffer(lwt.encode()))
+            .setWillQos(MqttQoS.AT_LEAST_ONCE);
+
+        client = MqttClient.create(vertx, options);
         attemptConnection();
     }
 
@@ -47,7 +61,7 @@ public class Main extends Application {
 
                 JsonObject onlinePayload = new JsonObject()
                         .put("online", true)
-                        .put("deviceId", "audioPlayer")
+                        .put("deviceId", deviceId)
                         .put("os", System.getProperty("os.name"))
                         .put("timestamp", System.currentTimeMillis());
 

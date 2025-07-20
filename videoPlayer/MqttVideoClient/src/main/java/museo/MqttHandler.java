@@ -24,7 +24,20 @@ public class MqttHandler {
     public MqttHandler(Vertx vertx) {
         this.vertx = vertx;
         this.manager = new ProcessManager();
-        client = MqttClient.create(vertx, new MqttClientOptions());
+
+        JsonObject lwt = new JsonObject()
+                .put("online", false)
+                .put("deviceId", deviceId)
+                .put("os", System.getProperty("os.name"))
+                .put("timestamp", System.currentTimeMillis());
+
+        MqttClientOptions options = new MqttClientOptions()
+                .setAutoKeepAlive(true)
+                .setWillTopic(dataTopic)
+                .setWillMessage(Buffer.buffer(lwt.encode()))
+                .setWillQos(MqttQoS.AT_LEAST_ONCE);
+
+        client = MqttClient.create(vertx, options);
         attemptConnection();
     }
 

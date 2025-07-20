@@ -135,7 +135,25 @@ void reconnect()
   while (!client.connected())
   {
     Serial.print("Tentativo connessione MQTT...");
-    if (client.connect(deviceId))
+
+    // LWT
+    StaticJsonDocument<200> lwt;
+    lwt["online"] = false;
+    lwt["deviceId"] = deviceId;
+    lwt["ip"] = WiFi.localIP().toString();
+    lwt["timestamp"] = millis();
+
+    char lwtBuffer[256];
+    serializeJson(lwt, lwtBuffer);
+    String lwtMsg = String(lwtBuffer);
+
+    if (client.connect(
+      deviceId,
+      dataTopic,
+      1,
+      true,
+      lwtMsg.c_str()
+    ))
     {
       Serial.println("connesso");
 
