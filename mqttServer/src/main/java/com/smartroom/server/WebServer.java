@@ -6,11 +6,21 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import com.smartroom.model.DeviceStatusManager;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.CorsHandler;
+
 
 public class WebServer {
 
     public static void start(Vertx vertx) {
+        
         Router router = Router.router(vertx);
+
+        router.route().handler(
+            CorsHandler.create().addOrigin("*") 
+                .allowedMethod(io.vertx.core.http.HttpMethod.GET)
+                .allowedMethod(io.vertx.core.http.HttpMethod.POST)
+                .allowedHeader("Content-Type")
+        );
 
         router.route().handler(BodyHandler.create());
 
@@ -39,6 +49,21 @@ public class WebServer {
                         .end("Dispositivo non trovato");
             }
         });
+
+        router.post("/command").handler(ctx -> {
+            JsonObject body = ctx.body().asJsonObject();
+            String command = body.getString("command");
+
+            if (command == null) {
+                ctx.response().setStatusCode(400).end("Comando mancante");
+                return;
+            }
+
+            System.out.println("Ricevuto comando da dashboard: " + command);
+            // MqttService.handleControl(command); 
+            ctx.response().end("Comando ricevuto: " + command);
+        });
+
 
         vertx.createHttpServer()
                 .requestHandler(router)
