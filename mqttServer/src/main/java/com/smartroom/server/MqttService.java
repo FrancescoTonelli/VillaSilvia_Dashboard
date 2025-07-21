@@ -228,4 +228,17 @@ public class MqttService {
         }
     }
 
+    public void handleDeviceCommand(String deviceId, String action, Object value) {
+        String topic = switch (deviceId.split("-")[1]) {
+            case "audioPlayer"   -> audioTopic;
+            case "videoPlayer"   -> videoTopic;
+            case "plafoniere"    -> "bonci/" + deviceId + "/command";
+            default               -> dataTopic;
+        };
+        JsonObject msg = new JsonObject().put("deviceId", deviceId).put("action", action);
+        if (value != null) msg.put("value", value);
+        publish(topic, msg.encode());
+    }
+
+
 }

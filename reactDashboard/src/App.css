@@ -1,42 +1,103 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
   text-align: center;
+  --mainColor: #57A5FF;
+  width: 100%;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.navbar {
+  background-color: white;
+  color: var(--mainColor);
+  width: 100%;
+  height: 5em;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: center;
+  border-bottom: var(--mainColor) 1px solid;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.navbar-link, .navbar-selected {
+  color: var(--mainColor);
+  text-decoration: none;
+  font-weight: normal;
+  font-size: 1.2em;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: color 0.3s ease;
+  &:hover {
+    font-weight: bold;
+    color: var(--mainColor);
+    border-bottom: var(--mainColor) 2px solid;
   }
-  to {
-    transform: rotate(360deg);
+  &.navbar-selected {
+    background-color: var(--mainColor);
+    color: white;
+    font-weight: bold;
+    font-size: 1.2em;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.device-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
 }
 
-.card {
-  padding: 2em;
+.device-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 }
 
-.read-the-docs {
-  color: #888;
+.device-card-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 30px;
+}
+
+.device-card-inner > a {
+  color: black;
+  font-size: 18px;
+}
+
+.status-circle {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.circle-green {
+  background-color: green;
+}
+
+.circle-red {
+  background-color: red;
+}
+
+.device-audioPlayer {
+  border: cyan 2px solid;
+}
+
+.device-plafoniera {
+  border: yellow 2px solid;
+}
+
+.device-videoPlayer {
+  border: pink 2px solid;
 }

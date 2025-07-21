@@ -69,6 +69,21 @@ public class WebServer {
             ctx.response().end("Comando ricevuto: " + command);
         });
 
+        router.post("/devices/:id/command").handler(ctx -> {
+            String id = ctx.pathParam("id");
+            JsonObject body = ctx.body().asJsonObject();
+            String action = body.getString("action");
+            Object value = body.getValue("value");
+            if (action == null) {
+                ctx.response().setStatusCode(400).end("Manca action");
+                return;
+            }
+            new MqttService(vertx, "localhost", 1883)
+                .handleDeviceCommand(id, action, value);
+            ctx.response().end("Comando " + action + " su " + id);
+        });
+
+
         // HTTP + WebSocket server
         vertx.createHttpServer()
             .webSocketHandler(ws -> {
