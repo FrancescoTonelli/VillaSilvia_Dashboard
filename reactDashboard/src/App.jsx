@@ -69,12 +69,12 @@ function App() {
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>🎛️ SmartRoom Dashboard</h1>
+      <h1> Dashboard</h1>
 
       <div style={{ marginBottom: '1rem' }}>
-        <button onClick={() => sendCommand('shutdown')}>🔴 Shutdown</button>{' '}
-        <button onClick={() => sendCommand('sleep')}>🛌 Sleep</button>{' '}
-        <button onClick={() => sendCommand('wake')}>🌞 Wake</button>
+        <button onClick={() => sendCommand('shutdown')}>Shutdown</button>{' '}
+        <button onClick={() => sendCommand('sleep')}>Sleep</button>{' '}
+        <button onClick={() => sendCommand('wake')}>Wake</button>
       </div>
 
       {commandResult && <p>{commandResult}</p>}
