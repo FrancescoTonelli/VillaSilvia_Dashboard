@@ -201,7 +201,7 @@ public class MqttService {
         }
     }
 
-    private void handleControl(String command) {
+    public void handleControl(String command) {
         switch (command) {
             case "shutdown":
                 publish(audioTopic, "SHUTDOWN");

@@ -1,39 +1,45 @@
 package com.smartroom.server;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.http.ServerWebSocket;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-import com.smartroom.model.DeviceStatusManager;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.CorsHandler;
+import io.vertx.core.http.HttpMethod;
 
+import com.smartroom.model.DeviceStatusManager;
+
+import java.util.List;
+import java.util.ArrayList;
 
 public class WebServer {
 
     public static void start(Vertx vertx) {
-        
         Router router = Router.router(vertx);
+        List<ServerWebSocket> wsClients = new ArrayList<>();
 
+        // CORS
         router.route().handler(
-            CorsHandler.create().addOrigin("*") 
-                .allowedMethod(io.vertx.core.http.HttpMethod.GET)
-                .allowedMethod(io.vertx.core.http.HttpMethod.POST)
+            CorsHandler.create().addOrigin("*")
+                .allowedMethod(HttpMethod.GET)
+                .allowedMethod(HttpMethod.POST)
                 .allowedHeader("Content-Type")
         );
 
         router.route().handler(BodyHandler.create());
 
-        // Serve tutte le risorse statiche da /webroot
+        // Static webroot
         router.route("/*").handler(StaticHandler.create("webroot"));
 
-        // Endpoint JSON API (es. /devices)
+        // REST APIs
         router.get("/devices").handler(ctx -> {
             JsonObject response = new JsonObject();
             DeviceStatusManager.getAllDevices().forEach(response::put);
             ctx.response()
-                    .putHeader("content-type", "application/json")
-                    .end(response.encodePrettily());
+                .putHeader("content-type", "application/json")
+                .end(response.encodePrettily());
         });
 
         router.get("/devices/:id").handler(ctx -> {
@@ -41,12 +47,10 @@ public class WebServer {
             var device = DeviceStatusManager.getDevice(id);
             if (device != null) {
                 ctx.response()
-                        .putHeader("content-type", "application/json")
-                        .end(device.encodePrettily());
+                    .putHeader("content-type", "application/json")
+                    .end(device.encodePrettily());
             } else {
-                ctx.response()
-                        .setStatusCode(404)
-                        .end("Dispositivo non trovato");
+                ctx.response().setStatusCode(404).end("Dispositivo non trovato");
             }
         });
 
@@ -59,20 +63,43 @@ public class WebServer {
                 return;
             }
 
-            System.out.println("Ricevuto comando da dashboard: " + command);
-            // MqttService.handleControl(command); 
+            System.out.println("Comando ricevuto: " + command);
+
+            new MqttService(vertx, "localhost", 1883).handleControl(command);
             ctx.response().end("Comando ricevuto: " + command);
         });
 
-
+        // HTTP + WebSocket server
         vertx.createHttpServer()
-                .requestHandler(router)
-                .listen(8080, http -> {
-                    if (http.succeeded()) {
-                        System.out.println("🌐 Server HTTP in ascolto su http://localhost:8080");
-                    } else {
-                        System.err.println("Errore HTTP: " + http.cause());
-                    }
-                });
+            .webSocketHandler(ws -> {
+                if (ws.path().equals("/ws")) {
+                    wsClients.add(ws);
+                    System.out.println("Client WebSocket connesso");
+
+                    ws.closeHandler(v -> {
+                        System.out.println("Client WebSocket disconnesso");
+                        wsClients.remove(ws);
+                    });
+                } else {
+                    ws.reject();
+                }
+            })
+            .requestHandler(router)
+            .listen(8080, http -> {
+                if (http.succeeded()) {
+                    System.out.println("Server in ascolto su http://localhost:8080");
+                } else {
+                    System.err.println("Errore: " + http.cause());
+                }
+            });
+
+        // Callback WebSocket
+        DeviceStatusManager.setOnUpdateCallback((JsonObject update) -> {
+            for (ServerWebSocket client : wsClients) {
+                if (!client.isClosed()) {
+                    client.writeTextMessage(update.encode());
+                }
+            }
+        });
     }
 }
