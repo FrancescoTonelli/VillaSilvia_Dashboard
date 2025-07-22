@@ -26,9 +26,11 @@ public class PlayVideo {
     private String activeThumbnailPath = null;
     private String activeVideoName = null;
 
-    private String blackPath = "/home/villasilvia/Desktop/condivisa/videoPlayer/main-app/image/black.jpeg";
+    private String blackPath = "/home/villasilvia/Desktop/condivisa/videoPlayer/main-app/image/black.png";
 
     private List<LightConfig> lightConfigList = new ArrayList<>();
+
+    private Process firstThumbProcess;
 
     public static void main(String[] args) {
         new PlayVideo().start();
@@ -92,7 +94,7 @@ public class PlayVideo {
                 new ProcessBuilder(
                         "convert", activeThumbnailPath, "-rotate", "90", rotatedPath).start().waitFor();
 
-                new ProcessBuilder("feh", "-F", "-Z", rotatedPath).start();
+                firstThumbProcess = new ProcessBuilder("feh", "-F", "-Z", rotatedPath).start();
             } catch (IOException e) {
                 System.err.println("Errore visualizzazione miniatura: " + e.getMessage());
             }
@@ -106,12 +108,12 @@ public class PlayVideo {
             System.out.println("Esecuzione warm-up di feh e mpv...");
 
             // Mostra un'immagine con feh e la chiude subito
-            new ProcessBuilder("bash", "-c", "feh -F -Z " + activeThumbnailPath + " & sleep 3 && pkill feh").start()
+            new ProcessBuilder("bash", "-c", "feh -F -Z " + activeThumbnailPath + " & sleep 2 && pkill feh").start()
                     .waitFor();
 
             // Esegue mpv e lo chiude subito
             new ProcessBuilder("bash", "-c",
-                    "mpv --fs --no-audio --video-rotate=90 " + activeVideoPath + " & sleep 10 && pkill mpv").start()
+                    "mpv --fs --no-audio --video-rotate=90 " + activeVideoPath + " & sleep 6 && pkill mpv").start()
                     .waitFor();
 
             System.out.println("Warm-up completato.");
@@ -137,6 +139,7 @@ public class PlayVideo {
                     "--osd-level=0",
                     "--vo=gpu",
                     "--video-rotate=90",
+                    "--panscan=1",
                     "--audio-device=alsa/sysdefault:CARD=vc4hdmi",
                     activeVideoPath);
             pb.inheritIO();
@@ -147,7 +150,6 @@ public class PlayVideo {
             videoProcess.waitFor();
 
             notifyEvent("ended");
-            currentState = State.DISABLED;
             showBlack();
 
         } catch (Exception e) {
@@ -156,10 +158,12 @@ public class PlayVideo {
     }
 
     private void showBlack() throws InterruptedException {
+        currentState = State.DISABLED;
 
         try {
-            Runtime.getRuntime().exec("pkill feh");
-            new ProcessBuilder("feh", "-F", "-Z", blackPath).start();
+            Process p = new ProcessBuilder("feh", "-F", "-Z", blackPath).start();
+            p.waitFor();
+            firstThumbProcess.destroyForcibly();
         } catch (IOException e) {
             System.err.println("Errore visualizzazione miniatura: " + e.getMessage());
         }
