@@ -234,7 +234,7 @@ public class MqttService {
                 publish(videoTopic, "WAKE");
                 break;
             case "start_presentation":
-                publish(plafTopic, "LIGHT_UP");
+                publish(plafTopic, "STARTING");
                 publish(audioTopic, "ON");
                 System.out.println("Presentazione avviata: luce generale accesa, audio acceso");
                 break;
