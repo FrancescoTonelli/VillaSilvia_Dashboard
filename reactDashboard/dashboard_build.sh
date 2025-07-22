@@ -3,6 +3,8 @@
 # Exit on error
 set -e
 
+npm install
+
 # Build the project
 npm run build
 
