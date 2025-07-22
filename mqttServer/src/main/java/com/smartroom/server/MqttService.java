@@ -223,22 +223,94 @@ public class MqttService {
                 publish(plafTopic, "ON");
                 publish(videoTopic, "WAKE");
                 break;
+            case "start_presentation":
+                publish(plafTopic, "LIGHT_UP");
+                publish(audioTopic, "ON");
+                System.out.println("Presentazione avviata: luce generale accesa, audio acceso");
+                break;
             default:
                 System.err.println("Comando sconosciuto su topic 'control': " + command);
         }
     }
 
-    public void handleDeviceCommand(String deviceId, String action, Object value) {
-        String topic = switch (deviceId.split("-")[1]) {
-            case "audioPlayer"   -> audioTopic;
-            case "videoPlayer"   -> videoTopic;
-            case "plafoniere"    -> "bonci/" + deviceId + "/command";
-            default               -> dataTopic;
-        };
-        JsonObject msg = new JsonObject().put("deviceId", deviceId).put("action", action);
-        if (value != null) msg.put("value", value);
-        publish(topic, msg.encode());
+    public void handleGeneralLight(String command) {
+        if (command == null) {
+            System.err.println("Comando mancante per luce generale");
+            return;
+        }
+
+        switch (command) {
+            case "ON":
+                publish(plafTopic, "ON");
+                System.out.println("Luce generale accesa");
+                break;
+            case "OFF":
+                publish(plafTopic, "OFF");
+                System.out.println("Luce generale spenta");
+                break;
+            case "LIGHT_UP":
+                publish(plafTopic, "LIGHT_UP");
+                System.out.println("Luce generale in aumento");
+                break;
+            case "LIGHT_DOWN":
+                publish(plafTopic, "LIGHT_DOWN");
+                System.out.println("Luce generale in diminuzione");
+                break;
+            default:
+                System.err.println("Comando sconosciuto per luce generale: " + command);
+        }
     }
 
+    public void handleGeneralAudio(String command) {
+        if (command == null) {
+            System.err.println("Comando mancante per audio");
+            return;
+        }
 
+        switch (command) {
+            case "ON":
+                publish(audioTopic, "ON");
+                System.out.println("Audio acceso");
+                break;
+            case "OFF":
+                publish(audioTopic, "OFF");
+                System.out.println("Audio spento");
+                break;
+            default:
+                System.err.println("Comando sconosciuto per audio: " + command);
+        }
+    }
+
+    public void handleGeneralVideo(String command) {
+        if (command == null) {
+            System.err.println("Comando mancante per video");
+            return;
+        }
+
+        switch (command) {
+            case "SLEEP":
+                publish(videoTopic, "SLEEP");
+                System.out.println("Video spento");
+                break;
+            case "WAKE":
+                publish(videoTopic, "WAKE");
+                System.out.println("Video acceso");
+                break;
+            default:
+                System.err.println("Comando sconosciuto per video: " + command);
+        }
+    }
+
+    public void handleDeviceCommand(String deviceId, String command) {
+        if (deviceId == null || command == null) {
+            System.err.println("ID dispositivo o comando mancante");
+            return;
+        }
+
+        if (deviceId.contains("plafoniera")) {
+            publish("bonci/" + deviceId + "/command", command);
+            System.out.println("Comando " + command + " inviato a " + deviceId + ".");
+        }
+
+    }
 }

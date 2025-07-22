@@ -1,16 +1,18 @@
 import { sendGlobalCommand } from '../api/Api';
 import { useState } from 'react';
+import { PlayIcon } from '../assets/Icons';
 
 export default function BonciModePage() {
   const [res, setRes] = useState('');
   return (
-    <div className="p-4">
+    <div className="button-description bonci-mode-page">
       <button
         onClick={() => sendGlobalCommand('start_presentation').then(r => setRes(r))}
+        className="button-start"
       >
-        Avvia presentazione
+        <PlayIcon />
       </button>
-      {res && <p>{res}</p>}
+        <p>Avvia presentazione</p>
     </div>
   );
 }

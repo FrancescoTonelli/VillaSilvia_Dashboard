@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { fetchDevice, sendCommandToDevice } from '../api/Api';
-import SliderControl from './SliderControl';
+import { fetchDevice, 
+  sendAudioGeneralCommand, 
+  sendCommandToDevice, 
+  sendGeneralLightCommand,
+  sendVideoGeneralCommand } from '../api/Api';
+import { CloseIcon, OnOffIcon, BulbIcon } from '../assets/Icons';
 
-export default function DeviceDetail({ deviceId }) {
+export default function DeviceDetail({ deviceId, onClose }) {
   const [device, setDevice] = useState(null);
   const [volume, setVolume] = useState(50);
-  const [intensity, setIntensity] = useState(50);
-  const [status, setStatus] = useState('');
   const [type, setType] = useState('');
 
   useEffect(() => {
@@ -26,48 +28,109 @@ export default function DeviceDetail({ deviceId }) {
 
   if (!device) return <p>Caricamento…</p>;
 
-  const commonOnOff = (action) =>
-    sendCommandToDevice(deviceId, action).then(res => setStatus(res));
-
   return (
-    <div className="p-4">
-      <h1>{deviceId} — {type}</h1>
+    <div className="device-detail">
+      <div className='device-detail-header'>
+        <h2>{deviceId}</h2>
+        <button onClick={onClose} className="button-back">
+          <CloseIcon />
+        </button>
+      </div>
       {type === 'audioPlayer' && (
         <>
-          <button onClick={() => commonOnOff('play')}>Play</button>
-          <button onClick={() => commonOnOff('stop')}>Stop</button>
-          <SliderControl
-            label="Volume"
-            value={volume}
-            onChange={v => {
-              setVolume(v);
-              sendCommandToDevice(deviceId, 'volume', v);
-            }}
-          />
+          <h2>Controllo generale</h2>
+          <div className="controls-row">
+            <div className="button-description">
+              <button onClick={() => sendAudioGeneralCommand('ON')} className='button-command button-on'>
+                <OnOffIcon fill="#ffffff" />
+              </button>
+              <p>ON</p>
+            </div>
+            <div className="button-description">
+              <button onClick={() => sendAudioGeneralCommand('OFF')} className="button-command button-off">
+                <OnOffIcon fill="#ffffff" />
+              </button>
+              <p>OFF</p>
+            </div>
+          </div>
         </>
       )}
       {type === 'videoPlayer' && (
         <>
-          <button onClick={() => commonOnOff('start')}>Start</button>
-          <button onClick={() => commonOnOff('stop')}>Stop</button>
-          <p>Stato: {device.state || '–'}</p>
+          <h2>Controllo generale</h2>
+          <div className="controls-row">
+            <div className="button-description">
+              <button onClick={() => sendVideoGeneralCommand('WAKE')} className='button-command button-on'>
+                <OnOffIcon fill="#ffffff" />
+              </button>
+              <p>ON</p>
+            </div>
+            <div className="button-description">
+              <button onClick={() => sendVideoGeneralCommand('SLEEP')} className="button-command button-off">
+                <OnOffIcon fill="#ffffff" />
+              </button>
+              <p>OFF</p>
+            </div>
+          </div>
         </>
       )}
       {type === 'plafoniera' && (
         <>
-          <button onClick={() => commonOnOff('on')}>Accendi</button>
-          <button onClick={() => commonOnOff('off')}>Spegni</button>
-          <SliderControl
-            label="Intensità"
-            value={intensity}
-            onChange={v => {
-              setIntensity(v);
-              sendCommandToDevice(deviceId, 'intensity', v);
-            }}
-          />
+          <div className="controls-row">
+            <div className="button-description">
+              <button onClick={() => sendCommandToDevice(deviceId, 'ON')} className='button-command button-on'>
+                <OnOffIcon fill="#ffffff" />
+              </button>
+              <p>ON</p>
+            </div>
+            <div className="button-description">
+              <button onClick={() => sendCommandToDevice(deviceId, 'OFF')} className="button-command button-off">
+                <OnOffIcon fill="#ffffff" />
+              </button>
+              <p>OFF</p>
+            </div>
+            <div className="button-description">
+              <button onClick={() => sendCommandToDevice(deviceId, 'LIGHT_DOWN')} className='button-command button-50'>
+                <BulbIcon />
+              </button>
+              <p>ABBASSA</p>
+            </div>
+            <div className="button-description">
+              <button onClick={() => sendCommandToDevice(deviceId, 'LIGHT_UP')} className='button-command button-100'>
+                <BulbIcon />
+              </button>
+              <p>ALZA</p>
+            </div>
+          </div>
+          <h2>Controllo generale</h2>
+          <div className="controls-row">
+            <div className="button-description">
+              <button onClick={() => sendGeneralLightCommand('ON')} className='button-command button-on'>
+                <OnOffIcon fill="#ffffff" />
+              </button>
+              <p>ON</p>
+            </div>
+            <div className="button-description">
+              <button onClick={() => sendGeneralLightCommand('OFF')} className="button-command button-off">
+                <OnOffIcon fill="#ffffff" />
+              </button>
+              <p>OFF</p>
+            </div>
+            <div className="button-description">
+              <button onClick={() => sendGeneralLightCommand('LIGHT_DOWN')} className='button-command button-50'>
+                <BulbIcon />
+              </button>
+              <p>50%</p>
+            </div>
+            <div className="button-description">
+              <button onClick={() => sendGeneralLightCommand('LIGHT_UP')} className='button-command button-100'>
+                <BulbIcon />
+              </button>
+              <p>100%</p>
+            </div>
+          </div>
         </>
       )}
-      <p className="mt-2">{status}</p>
     </div>
   );
 }

@@ -9,7 +9,9 @@ public class Main {
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
 
-        WebServer.start(vertx); // Avvia HTTP
-        new MqttService(vertx, "localhost", 1883); // Avvia MQTT
+        MqttService mqttService = 
+            new MqttService(vertx, "localhost", 1883); // Avvia MQTT
+
+        WebServer.start(vertx, mqttService); // Avvia HTTP
     }
 }

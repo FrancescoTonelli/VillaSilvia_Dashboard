@@ -32,6 +32,6 @@ export default function DevicesPage() {
 
 
   return selected
-    ? <DeviceDetail deviceId={selected} />
+    ? <DeviceDetail deviceId={selected} onClose={() => setSelected(null)} />
     : <DeviceGrid devices={devices} onSelect={setSelected} />;
 }

@@ -12,20 +12,54 @@ export async function fetchDevice(id) {
   return res.json();
 }
 
-export function sendCommandToDevice(deviceId, action, value = null) {
-  return fetch(`${BACKEND}/devices/${deviceId}/command`, {
+export async function sendCommandToDevice(deviceId, action) {
+  const res = await fetch(`${BACKEND}/devices/${deviceId}/command`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, value })
-  }).then(r => r.text());
+    body: JSON.stringify({ action })
+  });
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.text();
 }
 
-export function sendGlobalCommand(command) {
-  return fetch(`${BACKEND}/command`, {
+export async function sendGlobalCommand(command) {
+  const res = await fetch(`${BACKEND}/command`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ command })
-  }).then(r => r.text());
+  });
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.text();
+}
+
+export async function sendGeneralLightCommand(command) {
+  const res = await fetch(`${BACKEND}/light/general/command`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command })
+  });
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.text();
+}
+
+export async function sendAudioGeneralCommand(command) {
+  const res = await fetch(`${BACKEND}/audio/general/command`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command })
+  });
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.text();
+}
+
+export async function sendVideoGeneralCommand(command) {
+  const res = await fetch(`${BACKEND}/video/general/command`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command })
+  });
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.text();
 }
 
 export function connectSocket(onMessage) {

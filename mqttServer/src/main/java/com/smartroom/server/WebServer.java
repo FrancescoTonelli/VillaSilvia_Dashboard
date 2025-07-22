@@ -16,7 +16,7 @@ import java.util.ArrayList;
 
 public class WebServer {
 
-    public static void start(Vertx vertx) {
+    public static void start(Vertx vertx, MqttService mqttService) {
         Router router = Router.router(vertx);
         List<ServerWebSocket> wsClients = new ArrayList<>();
 
@@ -65,7 +65,7 @@ public class WebServer {
 
             System.out.println("Comando ricevuto: " + command);
 
-            new MqttService(vertx, "localhost", 1883).handleControl(command);
+            mqttService.handleControl(command);
             ctx.response().end("Comando ricevuto: " + command);
         });
 
@@ -73,16 +73,61 @@ public class WebServer {
             String id = ctx.pathParam("id");
             JsonObject body = ctx.body().asJsonObject();
             String action = body.getString("action");
-            Object value = body.getValue("value");
             if (action == null) {
                 ctx.response().setStatusCode(400).end("Manca action");
                 return;
             }
-            new MqttService(vertx, "localhost", 1883)
-                .handleDeviceCommand(id, action, value);
-            ctx.response().end("Comando " + action + " su " + id);
+            mqttService.handleDeviceCommand(id, action);
+
+            ctx.response()
+                .putHeader("content-type", "text/plain")
+                .end("Comando " + action + " inviato a " + id);
         });
 
+        router.post("/light/general/command").handler(ctx -> {
+            JsonObject body = ctx.body().asJsonObject();
+            String command = body.getString("command");
+            if (command == null) {
+                ctx.response().setStatusCode(400).end("Comando mancante per luce generale");
+                return;
+            }
+
+            mqttService.handleGeneralLight(command);
+
+            ctx.response()
+                .putHeader("content-type", "text/plain")
+                .end("Comando luce generale: " + command);
+        });
+
+        router.post("/audio/general/command").handler(ctx -> {
+            JsonObject body = ctx.body().asJsonObject();
+            String command = body.getString("command");
+            if (command == null) {
+                ctx.response().setStatusCode(400).end("Comando mancante per audio ");
+                return;
+            }
+
+            mqttService.handleGeneralAudio(command);
+
+            ctx.response()
+                .putHeader("content-type", "text/plain")
+                .end("Comando audio generale: " + command);
+        });
+
+        router.post("/video/general/command").handler(ctx -> {
+            JsonObject body = ctx.body().asJsonObject();
+            String command = body.getString("command");
+            if (command == null) {
+                ctx.response().setStatusCode(400).end("Comando mancante per video ");
+                return;
+            }
+
+            mqttService.handleGeneralVideo(command);
+
+            ctx.response()
+                .putHeader("content-type", "text/plain")
+                .end("Comando video generale: " + command);
+        });
 
         // HTTP + WebSocket server
         vertx.createHttpServer()
