@@ -1,4 +1,4 @@
-/home/admin/VillaSilvia_Dashboard/mqttServer/src/main/java/com/smartroom/model/DeviceStatusManager.java
-/home/admin/VillaSilvia_Dashboard/mqttServer/src/main/java/com/smartroom/server/WebServer.java
-/home/admin/VillaSilvia_Dashboard/mqttServer/src/main/java/com/smartroom/server/MqttService.java
-/home/admin/VillaSilvia_Dashboard/mqttServer/src/main/java/com/smartroom/Main.java
+/home/villasilvia/Desktop/condivisa/mqttServer/src/main/java/com/smartroom/model/DeviceStatusManager.java
+/home/villasilvia/Desktop/condivisa/mqttServer/src/main/java/com/smartroom/server/WebServer.java
+/home/villasilvia/Desktop/condivisa/mqttServer/src/main/java/com/smartroom/Main.java
+/home/villasilvia/Desktop/condivisa/mqttServer/src/main/java/com/smartroom/server/MqttService.java

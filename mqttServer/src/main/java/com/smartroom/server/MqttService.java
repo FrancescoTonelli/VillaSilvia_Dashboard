@@ -146,12 +146,17 @@ public class MqttService {
         System.out.println("Trigger ricevuto da " + deviceId + ": " + data.encodePrettily());
         JsonArray lights = data.getJsonArray("lights");
 
-        if (deviceId.equals("first-videoPlayer")) {
+        if (deviceId.equals("videoPlayer-intro")) {
+            publish(plafTopic, "LIGHT_DOWN");
+            publish(audioTopic, "OFF");
+        }
+        // da togliere, utile solo per le prove a un dispositivo
+        if (deviceId.equals("videoPlayer-grammofono1")) {
             publish(plafTopic, "LIGHT_DOWN");
             publish(audioTopic, "OFF");
         }
 
-        if (deviceId.equals("piano-videoPlayer") && pianoAlreadyTriggered) {
+        if (deviceId.equals("videoPlayer-piano") && pianoAlreadyTriggered) {
             pianoAlreadyTriggered = false;
             lights.forEach(entry -> {
                 JsonObject light = (JsonObject) entry;
@@ -162,7 +167,7 @@ public class MqttService {
             });
             return;
         }
-        if (deviceId.equals("piano-videoPlayer")) {
+        if (deviceId.equals("videoPlayer-piano")) {
             pianoAlreadyTriggered = true;
         }
 
@@ -173,7 +178,12 @@ public class MqttService {
 
     private void handleEnded(String deviceId) {
         System.out.println("Video terminato su " + deviceId);
-        if (deviceId.equals("piano-videoPlayer")) {
+        if (deviceId.equals("videoPlayer-piano")) {
+            publish(plafTopic, "LIGHT_UP");
+            publish(audioTopic, "ON");
+        }
+        // da togliere, utile solo per le prove a un dispositivo
+        if (deviceId.equals("videoPlayer-grammofono1")) {
             publish(plafTopic, "LIGHT_UP");
             publish(audioTopic, "ON");
         }
