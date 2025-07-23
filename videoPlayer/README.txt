@@ -5,6 +5,7 @@ ISTRUZIONI INSTALLAZIONE STAZIONE VIDEO
 2- Eseguire tutte le installazioni necessarie (jdk,mvn....)
 	sudo apt install openjdk-17-jdk
 	sudo apt install maven
+	....
 
 2- Attivare il servizio automatico (guarda systemctl)
 

@@ -7,7 +7,7 @@ public class ProcessManager {
 
     private Process videoPlayerProcess;
 
-    // Metodo usato per avviare l'applicazione JavaFX e mandare il Raspberry Pi in
+    // Metodo usato per avviare l'applicazione video e mandare il Raspberry Pi in
     // modalità risparmio energetico (solo se non è il primo avvio)
 
     public void startPlayVideoApp(Boolean first) {
@@ -17,11 +17,8 @@ public class ProcessManager {
         }
 
         if (!first) {
-            // non essendo il primo avvio è stato "addormentato" in precedenza, stampa in un
-            // log il suo stato (CPU,
-            // temperatura... durante lo sleep) e poi sveglia il Raspberri Pi dal risparmio
-            // energetico
-            executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
+            // non essendo il primo avvio è stato "addormentato" in precedenza, sveglia il
+            // Raspberri Pi dal risparmio energetico
             executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/wake.sh");
         }
 
@@ -37,12 +34,9 @@ public class ProcessManager {
 
     }
 
-    // Metodo usato per terminare l'applicazione JavaFX e mandare il Raspberry Pi in
+    // Metodo usato per terminare l'applicazione video e mandare il Raspberry Pi in
     // modalità risparmio energetico
     public void stopPlayVideoApp() {
-        // stampa in un log il suo stato (CPU,temperatura...) durante l'esecuzione
-        // normale
-        executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/log.sh");
         if (videoPlayerProcess != null && videoPlayerProcess.isAlive()) {
             System.out.println("Tentativo di chiusura playvideo-app...");
             videoPlayerProcess.destroyForcibly();
@@ -71,7 +65,7 @@ public class ProcessManager {
     public void executeScript(String path) {
         try {
             ProcessBuilder pb = new ProcessBuilder("/bin/bash", path);
-            pb.inheritIO(); // facoltativo: mostra output su console Java
+            pb.inheritIO();
             Process process = pb.start();
             int exitCode = process.waitFor();
             if (exitCode != 0) {

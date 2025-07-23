@@ -149,11 +149,6 @@ public class MqttService {
             publish(plafTopic, "LIGHT_DOWN");
             publish(audioTopic, "OFF");
         }
-        // da togliere, utile solo per le prove a un dispositivo
-        if (deviceId.equals("videoPlayer-grammofono1")) {
-            publish(plafTopic, "LIGHT_DOWN");
-            publish(audioTopic, "OFF");
-        }
 
         if (deviceId.equals("videoPlayer-piano") && pianoAlreadyTriggered) {
             pianoAlreadyTriggered = false;
@@ -164,6 +159,8 @@ public class MqttService {
 
                 publishShellyCommand(topic, false);
             });
+            publish(plafTopic, "OFF");
+            publish(videoTopic, "AVVIO_OLOGRAMMA");
             return;
         }
         if (deviceId.equals("videoPlayer-piano")) {
@@ -177,12 +174,9 @@ public class MqttService {
 
     private void handleEnded(String deviceId) {
         System.out.println("Video terminato su " + deviceId);
-        if (deviceId.equals("videoPlayer-piano")) {
-            publish(plafTopic, "LIGHT_UP");
-            publish(audioTopic, "ON");
-        }
-        // da togliere, utile solo per le prove a un dispositivo
-        if (deviceId.equals("videoPlayer-grammofono1")) {
+        if (deviceId.equals("videoPlayer-ologramma")) {
+            publish(videoTopic, "TERMINO_OLOGRAMMA");
+            publish(plafTopic, "ON");
             publish(plafTopic, "LIGHT_UP");
             publish(audioTopic, "ON");
         }

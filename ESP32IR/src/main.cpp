@@ -11,7 +11,7 @@ const char *ssid = "Bonci_WiFi";
 const char *password = "BonciRoom1";
 const char *mqtt_server = "192.168.0.2";
 
-const char *deviceId = "plafoniera1";
+const char *deviceId = "plafoniera4";
 
 const char *publicTopic = "bonci/plafoniere/command";           // topic in ascolto tutte le plafoniere
 String privateTopic = "bonci/" + String(deviceId) + "/command"; // topic in ascolto solo questa plafoniera
@@ -80,7 +80,7 @@ void callback(char *topic, byte *payload, unsigned int length)
       irsend.sendNEC(CODE_LIGHT_UP, 32);
       delay(500);
     }
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 1; i++)
     {
       irsend.sendNEC(CODE_LIGHT_DOWN, 32);
       delay(500);
