@@ -10,6 +10,10 @@ export default function DeviceCard({ device, onClick }) {
     typeClass = 'device-videoPlayer';
   } else if (device.id.includes('plafoniera')) {
     typeClass = 'device-plafoniera';
+  } else if (device.id.includes('plafoniera')) {
+    typeClass = 'device-plafoniera';
+  } else if (device.id.includes('shelly')) {
+    typeClass = 'device-shelly';
   }
 
   return (

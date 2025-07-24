@@ -129,6 +129,42 @@ public class WebServer {
                 .end("Comando video generale: " + command);
         });
 
+        router.post("/shelly/:id/command").handler(ctx -> {
+            String id = ctx.pathParam("id");
+            JsonObject body = ctx.body().asJsonObject();
+            String command = body.getString("command");
+            if (command == null || !(command.equals("ON") || command.equals("OFF"))) {
+                ctx.response().setStatusCode(400).end("Manca parametro 'command' valido (ON/OFF)");
+                return;
+            }
+            mqttService.handleDeviceCommand(id, command);
+            ctx.response()
+                .putHeader("content-type", "application/json")
+                .end(new JsonObject()
+                    .put("deviceId", id)
+                    .put("command", command)
+                    .encodePrettily());
+        });
+
+        router.post("/shelly/command").handler(ctx -> {
+            JsonObject body = ctx.body().asJsonObject();
+            String command = body.getString("command");
+            if (command == null || !(command.equals("ON") || command.equals("OFF"))) {
+                ctx.response().setStatusCode(400).end("Manca parametro 'command' valido (ON/OFF)");
+                return;
+            }
+            DeviceStatusManager.getAllDevices().keySet().stream()
+                .filter(dev -> dev.contains("shelly"))
+                .forEach(dev -> mqttService.handleDeviceCommand(dev, command));
+            ctx.response()
+                .putHeader("content-type", "application/json")
+                .end(new JsonObject()
+                    .put("allShelly", true)
+                    .put("command", command)
+                    .encodePrettily());
+        });
+
+
         // HTTP + WebSocket server
         vertx.createHttpServer()
             .webSocketHandler(ws -> {

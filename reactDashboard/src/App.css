@@ -133,6 +133,10 @@ button:focus {
   border: pink 2px solid;
 }
 
+.device-shelly {
+  border: green 2px solid;
+}
+
 .device-detail {
   padding: 20px;
   width: 70%;

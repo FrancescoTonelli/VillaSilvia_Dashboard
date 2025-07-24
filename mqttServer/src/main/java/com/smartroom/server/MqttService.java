@@ -230,6 +230,10 @@ public class MqttService {
             case "start_presentation":
                 publish(plafTopic, "STARTING");
                 publish(audioTopic, "ON");
+
+                DeviceStatusManager.getAllDevices().keySet().stream()
+                    .filter(dev -> dev.contains("shelly"))
+                    .forEach(dev -> handleDeviceCommand(dev, "OFF"));
                 System.out.println("Presentazione avviata: luce generale accesa, audio acceso");
                 break;
             default:
@@ -316,5 +320,8 @@ public class MqttService {
             System.out.println("Comando " + command + " inviato a " + deviceId + ".");
         }
 
+        else if (deviceId.contains("shelly") && (command.equals("ON") || command.equals("OFF"))) {
+            publishShellyCommand(deviceId+"/rpc", command.equals("ON") ? true : false);
+        }
     }
 }

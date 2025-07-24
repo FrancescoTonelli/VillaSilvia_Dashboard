@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { fetchDevice, 
   sendAudioGeneralCommand, 
-  sendCommandToDevice, 
-  sendGeneralLightCommand,
-  sendVideoGeneralCommand } from '../api/Api';
+  sendCommandToDevice,
+  sendVideoGeneralCommand,
+  sendShellyCommand,
+  sendShellyCommandToAll
+} from '../api/Api';
 import { CloseIcon } from '../assets/Icons';
 import {
   ButtonOn,
@@ -25,6 +27,8 @@ export default function DeviceDetail({ deviceId, onClose }) {
         setType('videoPlayer');
       } else if (deviceId.includes('plafoniera')) {
         setType('plafoniera');
+      } else if (deviceId.includes('shelly')) {
+        setType('shelly');
       }
     });
   }, [deviceId]);
@@ -66,6 +70,19 @@ export default function DeviceDetail({ deviceId, onClose }) {
             <ButtonOff onClick={() => sendCommandToDevice(deviceId, 'OFF')} />
             <ButtonLightUp onClick={() => sendCommandToDevice(deviceId, 'LIGHT_UP')}/>
             <ButtonLightDown onClick={() => sendCommandToDevice(deviceId, 'LIGHT_DOWN')}/>
+          </div>
+        </>
+      )}
+      {type === 'shelly' && (
+        <>
+          <div className="controls-row">
+            <ButtonOn onClick={() => sendShellyCommand(deviceId, "ON")} />
+            <ButtonOff onClick={() => sendShellyCommand(deviceId, "OFF")} />
+          </div>
+          <h2>Controllo generale shelly</h2>
+          <div className="controls-row">
+            <ButtonOn onClick={() => sendShellyCommandToAll("ON")} />
+            <ButtonOff onClick={() => sendShellyCommandToAll("OFF")} />
           </div>
         </>
       )}

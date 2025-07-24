@@ -62,6 +62,26 @@ export async function sendVideoGeneralCommand(command) {
   return res.text();
 }
 
+export async function sendShellyCommand(shellyId, command /* "ON"|"OFF" */) {
+  const res = await fetch(`${BACKEND}/shelly/${encodeURIComponent(shellyId)}/command`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command })
+  });
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.json();
+}
+
+export async function sendShellyCommandToAll(command) {
+  const res = await fetch(`${BACKEND}/shelly/command`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command })
+  });
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.json();
+}
+
 export function connectSocket(onMessage) {
   socket = new WebSocket(BACKEND.replace(/^http/, 'ws') + '/ws');
 
@@ -78,4 +98,5 @@ export function connectSocket(onMessage) {
     }
   };
 }
+
 
