@@ -151,7 +151,7 @@ void reconnect()
       deviceId,
       dataTopic,
       1,
-      true,
+      false,
       lwtMsg.c_str()
     ))
     {
@@ -166,11 +166,10 @@ void reconnect()
       doc["online"] = true;
       doc["deviceId"] = deviceId;
       doc["ip"] = WiFi.localIP().toString();
-      doc["timestamp"] = millis(); // tempo dal boot in ms
-
+      doc["timestamp"] = millis();
       char buffer[256];
-      size_t n = serializeJson(doc, buffer);
-      client.publish(dataTopic, buffer, n);
+      serializeJson(doc, buffer);
+      client.publish(dataTopic, buffer, false);
 
       Serial.println("Messaggio di connessione inviato");
     }
