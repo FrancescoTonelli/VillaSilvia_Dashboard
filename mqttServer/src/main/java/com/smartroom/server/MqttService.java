@@ -161,7 +161,6 @@ public class MqttService {
                 publishShellyCommand(topic, false);
             });
             publish(plafTopic, "OFF");
-            publish(videoTopic, "AVVIO_OLOGRAMMA");
             return;
         }
         if (deviceId.equals("videoPlayer-piano")) {
@@ -175,8 +174,7 @@ public class MqttService {
 
     private void handleEnded(String deviceId) {
         System.out.println("Video terminato su " + deviceId);
-        if (deviceId.equals("videoPlayer-ologramma")) {
-            publish(videoTopic, "TERMINO_OLOGRAMMA");
+        if (deviceId.equals("videoPlayer-piano")) {
             publish(plafTopic, "ON");
             publish(plafTopic, "LIGHT_UP");
             publish(audioTopic, "ON");
@@ -232,8 +230,8 @@ public class MqttService {
                 publish(audioTopic, "ON");
 
                 DeviceStatusManager.getAllDevices().keySet().stream()
-                    .filter(dev -> dev.contains("shelly"))
-                    .forEach(dev -> handleDeviceCommand(dev, "OFF"));
+                        .filter(dev -> dev.contains("shelly"))
+                        .forEach(dev -> handleDeviceCommand(dev, "OFF"));
                 System.out.println("Presentazione avviata: luce generale accesa, audio acceso");
                 break;
             default:
@@ -321,7 +319,7 @@ public class MqttService {
         }
 
         else if (deviceId.contains("shelly") && (command.equals("ON") || command.equals("OFF"))) {
-            publishShellyCommand(deviceId+"/rpc", command.equals("ON") ? true : false);
+            publishShellyCommand(deviceId + "/rpc", command.equals("ON") ? true : false);
         }
     }
 }
