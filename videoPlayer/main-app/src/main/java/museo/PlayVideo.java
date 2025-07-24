@@ -1,5 +1,6 @@
 package museo;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -31,7 +32,7 @@ public class PlayVideo {
 
     private List<LightConfig> lightConfigList = new ArrayList<>();
 
-    private Process firstThumbProcess;
+    private Process pausedMpvProcess;
 
     public static void main(String[] args) {
         new PlayVideo().start();
@@ -48,14 +49,13 @@ public class PlayVideo {
             System.err.println("Errore avvio unclutter: " + e.getMessage());
         }
 
-        String user = System.getProperty("user.name");
         ScanResult result = null;
 
         // non parte fino a quando non trova una USB con i path al .mp4, .jpg e il json
         // di configurazione
 
         while (result == null || !result.isComplete()) {
-            result = UsbMediaScanner.scanForMedia(user);
+            result = UsbMediaScanner.scanForMedia();
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
@@ -69,15 +69,10 @@ public class PlayVideo {
         this.lightConfigList = result.lightConfigList;
 
         try {
-            this.rotatedThumbnailPath = "/tmp/rotated_thumbnail.jpg";
-            new ProcessBuilder(
-                    "convert", activeThumbnailPath, "-rotate", "90", rotatedThumbnailPath).start().waitFor();
-            warmup();
+
             Thread.sleep(5000);
             showThumbnail();
         } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
             e.printStackTrace();
         }
 
@@ -94,41 +89,50 @@ public class PlayVideo {
 
     private void showThumbnail() throws InterruptedException {
         currentState = State.SHOW_THUMBNAIL;
-        if (activeThumbnailPath != null) {
-            try {
-                firstThumbProcess = new ProcessBuilder(
-                        "bash", "-c", "feh --hide-pointer --no-menus --borderless -F -Z " + rotatedThumbnailPath)
-                        .start();
 
+        try {
+            new ProcessBuilder(
+                    "bash", "-c", "feh --hide-pointer --no-menus --borderless -F -Z " + blackPath)
+                    .start();
+
+        } catch (IOException e) {
+            System.err.println("Errore visualizzazione miniatura: " + e.getMessage());
+        }
+
+        Thread.sleep(3000);
+
+        loadMpv();
+
+    }
+
+    private void loadMpv() {
+        if (activeVideoPath != null) {
+            try {
+                ProcessBuilder pb = new ProcessBuilder(
+                        "mpv",
+                        "--fs",
+                        "--no-border",
+                        "--osd-level=0",
+                        "--vo=gpu",
+                        "--video-rotate=90",
+                        "--pause",
+                        "--start=1",
+                        "--input-ipc-server=/tmp/mpvsocket",
+                        "--audio-device=alsa/sysdefault:CARD=vc4hdmi",
+                        activeVideoPath);
+                System.out.println("mpv avviato in pausa e in ascolto su /tmp/mpvsocket.");
+
+                pb.redirectErrorStream(true);
+                pb.redirectOutput(new File("/tmp/mpv.log"));
+                pausedMpvProcess = pb.start();
             } catch (IOException e) {
-                System.err.println("Errore visualizzazione miniatura: " + e.getMessage());
+                System.err.println("Errore avvio mpv in pausa: " + e.getMessage());
             }
         }
     }
 
-    private void warmup() {
-        // All'inizio apre e chiude subito i due processi per "riscaldare" l'ambiente,
-        // dalla seconda volta l'aperturà sarà infatti più veloce
-        try {
-            System.out.println("Esecuzione warm-up di feh e mpv...");
-
-            // Mostra un'immagine con feh e la chiude subito
-            new ProcessBuilder("bash", "-c", "feh -F -Z " + rotatedThumbnailPath + " & sleep 2 && pkill feh").start()
-                    .waitFor();
-
-            // Esegue mpv e lo chiude subito
-            new ProcessBuilder("bash", "-c",
-                    "mpv --fs --no-audio --video-rotate=90 " + activeVideoPath + " & sleep 10 && pkill mpv").start()
-                    .waitFor();
-
-            System.out.println("Warm-up completato.");
-        } catch (Exception e) {
-            System.err.println("Errore nel warm-up: " + e.getMessage());
-        }
-    }
-
     private void triggered() {
-        if (currentState == State.SHOW_THUMBNAIL && activeVideoPath != null) {
+        if (currentState == State.SHOW_THUMBNAIL) {
             playVideo();
         }
     }
@@ -137,41 +141,50 @@ public class PlayVideo {
         currentState = State.PLAYING_VIDEO;
 
         try {
-            ProcessBuilder pb = new ProcessBuilder(
-                    "mpv",
-                    "--fs",
-                    "--no-border",
-                    "--osd-level=0",
-                    "--vo=gpu",
-                    "--video-rotate=90",
-                    "--audio-device=alsa/sysdefault:CARD=vc4hdmi",
-                    activeVideoPath);
-            pb.inheritIO();
-            Process videoProcess = pb.start();
-            Thread.sleep(3000);
+
+            // Invia comando play tramite socket
+            sendMpvCommand("{\"command\": [\"set_property\", \"pause\", false]}");
+
             notifyEvent("triggered");
 
-            videoProcess.waitFor();
+            // Attendi che il video finisca
+            pausedMpvProcess.waitFor();
 
             notifyEvent("ended");
-            showBlack();
+
+            currentState = State.DISABLED;
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
-    private void showBlack() throws InterruptedException {
-        currentState = State.DISABLED;
-
+    private void sendMpvCommand(String jsonCommand) {
         try {
-            Process p = new ProcessBuilder("feh", "-F", "-Z", blackPath).start();
-            p.waitFor();
-            firstThumbProcess.destroyForcibly();
-        } catch (IOException e) {
-            System.err.println("Errore visualizzazione miniatura: " + e.getMessage());
-        }
+            // Escape degli apici singoli nel comando
+            String escapedJson = jsonCommand.replace("'", "'\\''");
 
+            // Comando socat: echo '<json>' | socat - /tmp/mpvsocket
+            String[] command = {
+                    "bash",
+                    "-c",
+                    "echo '" + escapedJson + "' | socat - /tmp/mpvsocket"
+            };
+
+            ProcessBuilder pb = new ProcessBuilder(command);
+            Process p = pb.start();
+            int exitCode = p.waitFor();
+
+            if (exitCode == 0) {
+                System.out.println("Comando inviato con socat: " + jsonCommand);
+            } else {
+                System.err.println("Errore socat (codice " + exitCode + ")");
+            }
+
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Errore invio comando a mpv con socat: " + e.getMessage());
+        }
     }
 
     private void notifyEvent(String event) {

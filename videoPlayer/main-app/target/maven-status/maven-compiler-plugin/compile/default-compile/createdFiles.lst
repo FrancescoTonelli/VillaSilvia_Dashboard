@@ -1,2 +1,4 @@
-museo/EmbeddedSubsystem.class
 museo/DistanceDetector.class
+museo/EmbeddedSubsystem.class
+museo/PlayVideoWork$State.class
+museo/PlayVideoWork.class
