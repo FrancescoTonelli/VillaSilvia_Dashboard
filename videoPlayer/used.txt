@@ -3,7 +3,7 @@ Rasp->Preferenze->Configurazione Schermo->Imposta 1024x768
 
 -PER EVITARE GLI STANDBY AUTOMATICI
 
-sudo nano etc/xdg/lxsession/LXDE-pi/autostart
+sudo nano /etc/xdg/lxsession/LXDE-pi/autostart
 
 lxpanel --profile LXDE-pi
 pcmanfm --desktop --profile LXDE-pi
@@ -13,19 +13,16 @@ sh -c "sleep 5 && xset -dpms"
 sh -c "sleep 5 && xset s noblank"
 
 
--CONTROLLO HDMI-CEC PER MONITORARE LE TV
+-PROGRAMMI VARI
 
-sudo apt install cec-utils
+sudo apt install cec-utils -y
+sudo apt install mpv -y
+sudo apt install feh -y
+sudo apt install unclutter -y
+sudo apt install imagemagick -y
 
--DISABILITARE NOTIFICA USB
 
-nano ~/.config/pcmanfm/LXDE-pi/pcmanfm.conf
 
-[volume]
-mount_on_insert=0
-mount_removable=0
-
-pcmanfm --reconfigure
 
 
 

@@ -23,7 +23,7 @@ public class WebServer {
         router.post("/event/:type").handler(ctx -> {
             String type = ctx.pathParam("type");
 
-            JsonArray lights = new JsonArray(); // di default vuoto
+            JsonArray lights = new JsonArray();
 
             Buffer body = ctx.body().buffer();
             if (type.equalsIgnoreCase("triggered") && body != null && body.length() > 0) {
