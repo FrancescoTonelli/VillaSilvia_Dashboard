@@ -13,7 +13,7 @@ import io.vertx.core.json.JsonObject;
 public class MqttHandler {
 
     private final MqttClient client;
-    private final String deviceId = "videoPlayer-grammofono1";
+    private final String deviceId = "videoPlayer-intro";
     private final Vertx vertx;
     private final ProcessManager manager;
 

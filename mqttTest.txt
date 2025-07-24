@@ -12,16 +12,21 @@ TEST AUDIO
 mosquitto_pub -h 192.168.0.2 -t bonci/audioPlayer/command -m "ON"
 mosquitto_pub -h 192.168.0.2 -t bonci/audioPlayer/command -m "OFF"
 mosquitto_pub -h 192.168.0.2 -t bonci/audioPlayer/command -m "PAUSE"
+mosquitto_pub -h 192.168.0.2 -t bonci/audioPlayer/command -m "VOLUME_UP"
+mosquitto_pub -h 192.168.0.2 -t bonci/audioPlayer/command -m "VOLUME_DOWN"
 
 --------------
 TEST PLAFONIERE
-mosquitto_pub -h 192.168.0.2 -t bonci/plafoniera/command -m "STARTING"
-mosquitto_pub -h 192.168.0.2 -t bonci/plafoniera/command -m "ON"
-mosquitto_pub -h 192.168.0.2 -t bonci/plafoniera/command -m "OFF"
-mosquitto_pub -h 192.168.0.2 -t bonci/plafoniera/command -m "LIGHT_UP"
-mosquitto_pub -h 192.168.0.2 -t bonci/plafoniera/command -m "LIGHT_DOWN"
-mosquitto_pub -h 192.168.0.2 -t bonci/plafoniera/command -m "COLD_UP"
-mosquitto_pub -h 192.168.0.2 -t bonci/plafoniera/command -m "WARM_UP"
+mosquitto_pub -h 192.168.0.2 -t bonci/plafoniere/command -m "STARTING"
+mosquitto_pub -h 192.168.0.2 -t bonci/plafoniere/command -m "ON"
+mosquitto_pub -h 192.168.0.2 -t bonci/plafoniere/command -m "OFF"
+mosquitto_pub -h 192.168.0.2 -t bonci/plafoniere/command -m "LIGHT_UP"
+mosquitto_pub -h 192.168.0.2 -t bonci/plafoniere/command -m "LIGHT_DOWN"
+mosquitto_pub -h 192.168.0.2 -t bonci/plafoniere/command -m "COLD_UP"
+mosquitto_pub -h 192.168.0.2 -t bonci/plafoniere/command -m "WARM_UP"
+
+PER PLAFONIERA DA 1 A 6
+mosquitto_pub -h 192.168.0.2 -t bonci/plafoniera1/command -m "ON" ...
 
 
 
@@ -31,6 +36,11 @@ STANZA GLOBALE
 mosquitto_pub -h 192.168.0.2 -t bonci/power/command -m '{"command":"sleep"}'
 mosquitto_pub -h 192.168.0.2 -t bonci/power/command -m '{"command":"wake"}'
 mosquitto_pub -h 192.168.0.2 -t bonci/power/command -m '{"command":"shutdown"}'
+
+
+
+
+mosquitto_pub -h 192.168.0.2 -p 1883 -t bonci/videoPlayer/event -m '{"deviceId": "videoPlayer-piano", "event": "triggered", "devices": [{"id": "shelly-disco", "onAfter": 70, "offAfter": 79}]}'
 
 
 
