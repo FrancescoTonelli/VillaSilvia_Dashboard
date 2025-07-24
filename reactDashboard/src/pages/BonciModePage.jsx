@@ -12,7 +12,7 @@ export default function BonciModePage() {
       >
         <PlayIcon />
       </button>
-        <p>Avvia presentazione</p>
+        <h2>Avvia presentazione</h2>
     </div>
   );
 }

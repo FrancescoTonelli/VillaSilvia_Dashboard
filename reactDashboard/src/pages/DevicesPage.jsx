@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchDevices, connectSocket } from '../api/Api';
 import DeviceGrid from '../components/DeviceGrid';
 import DeviceDetail from '../components/DeviceDetail';
+import DeviceMenu from '../components/DeviceMenu';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState([]);
@@ -31,7 +32,15 @@ export default function DevicesPage() {
   }, []);
 
 
-  return selected
-    ? <DeviceDetail deviceId={selected} onClose={() => setSelected(null)} />
-    : <DeviceGrid devices={devices} onSelect={setSelected} />;
+  return (
+  <div className='device-page'>
+    <DeviceMenu />
+    {selected && (
+      <DeviceDetail deviceId={selected} onClose={() => setSelected(null)} />
+    )}
+    {!selected && (
+      <DeviceGrid devices={devices} onSelect={setSelected} />
+    )}
+  </div>
+);
 }

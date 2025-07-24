@@ -1,15 +1,15 @@
-import { NavLink } from 'react-router-dom';
 import '../App.css';
 
-export default function Navbar() {
+export default function Navbar({ currentPage, setPage }) {
   return (
     <nav className="navbar">
-      <NavLink to="/" end className={({isActive}) => isActive ? 'navbar-selected' : 'navbar-link'}>
+      <a onClick={() => setPage('devices')} className={currentPage === 'devices' ? 'navbar-selected' : 'navbar-link'}>
         Dispositivi
-      </NavLink>
-      <NavLink to="/bonci" className={({isActive}) => isActive ? 'navbar-selected' : 'navbar-link'}>
+      </a>
+      <a onClick={() => setPage('bonci')} className={currentPage === 'bonci' ? 'navbar-selected' : 'navbar-link'}>
         Modalità Bonci
-      </NavLink>
+      </a>
     </nav>
   );
 }
+

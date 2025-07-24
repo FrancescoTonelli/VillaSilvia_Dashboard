@@ -1,4 +1,5 @@
 :root {
+  height: 100%;
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -13,6 +14,11 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+p {
+  margin: 0;
+  padding: 0;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -23,13 +29,13 @@ a:hover {
 }
 
 body {
+  height: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   min-width: 320px;
-  min-height: 100vh;
 }
 
 h1 {

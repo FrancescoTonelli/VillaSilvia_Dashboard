@@ -13,6 +13,7 @@ export default function DeviceGrid({ devices, onSelect }) {
           onClick={() => { if (device.online) onSelect(device.id); }}
         />
       ))}
+      <div className="foot-spacer" />
     </div>
   );
 }
