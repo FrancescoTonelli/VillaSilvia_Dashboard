@@ -228,10 +228,16 @@ public class MqttService {
             case "start_presentation":
                 publish(plafTopic, "STARTING");
                 publish(audioTopic, "ON");
-
-                DeviceStatusManager.getAllDevices().keySet().stream()
-                        .filter(dev -> dev.contains("shelly"))
-                        .forEach(dev -> handleDeviceCommand(dev, "OFF"));
+                new Thread(() -> {
+                    try {
+                        for(int i = 0; i < 10; i++) {
+                            publish(audioTopic, "VOLUME_UP");
+                            Thread.sleep(500);
+                        }
+                    }catch(InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
                 System.out.println("Presentazione avviata: luce generale accesa, audio acceso");
                 break;
             default:
@@ -291,11 +297,11 @@ public class MqttService {
                 System.out.println("Audio spento");
                 break;
             case "AUDIO_UP":
-                publish(audioTopic, "AUDIO_UP");
+                publish(audioTopic, "VOLUME_UP");
                 System.out.println("Audio in aumento");
                 break;
             case "AUDIO_DOWN":
-                publish(audioTopic, "AUDIO_DOWN");
+                publish(audioTopic, "VOLUME_DOWN");
                 System.out.println("Audio in diminuzione");
                 break;
             default:

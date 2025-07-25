@@ -3,23 +3,14 @@ import { useState } from 'react';
 import { PlayIcon, ReloadIcon } from '../assets/Icons';
 
 export default function BonciModePage() {
-  const [res, setRes] = useState('');
   return (
     <div className='bonci-mode-page controls-row'>
       <div className="button-description">
         <button
-          onClick={() => sendGlobalCommand('start_presentation').then(r => setRes(r))}
-          className="button-start"
-        >
-          <PlayIcon />
-        </button>
-          <h2>Avvia presentazione</h2>
-      </div>
-      <div className="button-description">
-        <button
           onClick={async () => {
+            await sendGlobalCommand('start_presentation');
             await sendVideoGeneralCommand('SLEEP');
-            await new Promise(resolve => setTimeout(resolve, 20000));
+            await new Promise(resolve => setTimeout(resolve, 30000));
             await sendVideoGeneralCommand('WAKE');
           }}
 
@@ -27,7 +18,7 @@ export default function BonciModePage() {
         >
           <ReloadIcon />
         </button>
-          <h2>Ricarica schermi</h2>
+          <h2>Ricarica presentazione</h2>
       </div>
     </div>
   );
