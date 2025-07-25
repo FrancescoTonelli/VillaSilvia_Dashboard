@@ -12,6 +12,7 @@ const char *password = "BonciRoom1";
 const char *mqtt_server = "192.168.0.2";
 
 const char *deviceId = "plafoniera4";
+bool statusOn = true;
 
 const char *publicTopic = "bonci/plafoniere/command";           // topic in ascolto tutte le plafoniere
 String privateTopic = "bonci/" + String(deviceId) + "/command"; // topic in ascolto solo questa plafoniera
@@ -55,6 +56,20 @@ void setup_wifi()
   Serial.println(WiFi.localIP());
 }
 
+void sendOn(){
+  if(!statusOn){
+    irsend.sendNEC(CODE_ON, 32);
+    statusOn = true;
+  }
+}
+
+void sendOff(){
+  if(statusOn){
+    irsend.sendNEC(CODE_OFF, 32);
+    statusOn = false;
+  }
+}
+
 // === Callback MQTT ===
 void callback(char *topic, byte *payload, unsigned int length)
 {
@@ -73,46 +88,58 @@ void callback(char *topic, byte *payload, unsigned int length)
 
   if (command == "STARTING")
   {
-    irsend.sendNEC(CODE_ON, 32);
+    sendOn();
     delay(250);
     for (int i = 0; i < 9; i++)
     {
       irsend.sendNEC(CODE_LIGHT_UP, 32);
-      delay(500);
+      delay(250);
     }
     for (int i = 0; i < 1; i++)
     {
       irsend.sendNEC(CODE_LIGHT_DOWN, 32);
-      delay(500);
+      delay(250);
     }
     for (int i = 0; i < 8; i++)
     {
       irsend.sendNEC(CODE_WARM_UP, 32);
-      delay(500);
+      delay(250);
     }
   }
   else if (command == "ON")
   {
-    irsend.sendNEC(CODE_ON, 32);
+    sendOn();
   }
   else if (command == "OFF")
   {
-    irsend.sendNEC(CODE_OFF, 32);
+    sendOff();
   }
   else if (command == "LIGHT_UP")
   {
-    for (int i = 0; i < 6; i++)
-    {
-      irsend.sendNEC(CODE_LIGHT_UP, 32);
-      delay(500);
-    }
+    irsend.sendNEC(CODE_LIGHT_UP, 32);
+    delay(250);
+    
   }
   else if (command == "LIGHT_DOWN")
   {
-    for (int i = 0; i < 6; i++)
+    irsend.sendNEC(CODE_LIGHT_DOWN, 32);
+    delay(250);
+    
+  }
+  else if (command == "LIGHT_MAX")
+  {
+    for (int i = 0; i < 9; i++)
+    {
+      irsend.sendNEC(CODE_LIGHT_UP, 32);
+      delay(250);
+    }
+  }
+  else if (command == "LIGHT_MIN")
+  {
+    for (int i = 0; i < 9; i++)
     {
       irsend.sendNEC(CODE_LIGHT_DOWN, 32);
-      delay(500);
+      delay(250);
     }
   }
   else if (command == "WARM_UP")
