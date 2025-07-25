@@ -11,7 +11,12 @@ import {
   ButtonOn,
   ButtonOff,
   ButtonLightDown,
-  ButtonLightUp
+  ButtonLightUp,
+  ButtonToggle,
+  ButtonSoundUp,
+  ButtonSoundDown,
+  ButtonCold,
+  ButtonHot
 } from '../components/Buttons';
 
 export default function DeviceDetail({ deviceId, onClose }) {
@@ -47,10 +52,11 @@ export default function DeviceDetail({ deviceId, onClose }) {
       </div>
       {type === 'audioPlayer' && (
         <>
-          <h2>Controllo audio</h2>
           <div className="controls-row">
             <ButtonOn onClick={() => sendAudioGeneralCommand('ON')} />
             <ButtonOff onClick={() => sendAudioGeneralCommand('OFF')} />
+            <ButtonSoundUp onClick={() => sendAudioGeneralCommand('AUDIO_UP')} />
+            <ButtonSoundDown onClick={() => sendAudioGeneralCommand('AUDIO_DOWN')} />
           </div>
         </>
       )}
@@ -66,10 +72,11 @@ export default function DeviceDetail({ deviceId, onClose }) {
       {type === 'plafoniera' && (
         <>
           <div className="controls-row">
-            <ButtonOn onClick={() => sendCommandToDevice(deviceId, 'ON')} />
-            <ButtonOff onClick={() => sendCommandToDevice(deviceId, 'OFF')} />
+            <ButtonToggle onClick={() => sendCommandToDevice(deviceId, 'ON')} />
             <ButtonLightUp onClick={() => sendCommandToDevice(deviceId, 'LIGHT_UP')}/>
             <ButtonLightDown onClick={() => sendCommandToDevice(deviceId, 'LIGHT_DOWN')}/>
+            <ButtonCold onClick={() => sendCommandToDevice(deviceId, 'COLD_UP')} />
+            <ButtonHot onClick={() => sendCommandToDevice(deviceId, 'WARM_UP')} />
           </div>
         </>
       )}

@@ -1,5 +1,12 @@
 import React from 'react';
-import { OnOffIcon, BulbIcon } from '../assets/Icons';
+import { 
+    OnOffIcon, 
+    BulbIcon, 
+    SoundUpIcon, 
+    SoundDownIcon,
+    ColdIcon,
+    HotIcon
+ } from '../assets/Icons';
 
 function ButtonOnOff({ onClick, classNameStatus, label = "ON" }) {
     return (
@@ -20,6 +27,10 @@ export function ButtonOff({ onClick }) {
     return <ButtonOnOff onClick={onClick} classNameStatus="button-off" label="OFF" />;
 }
 
+export function ButtonToggle({ onClick }) {
+    return <ButtonOnOff onClick={onClick} classNameStatus="button-toggle" label="ON/OFF" />;
+}
+
 function ButtonLight({ onClick, classNameStatus, label = "ALZA" }) {
     return (
         <div className="button-description">
@@ -37,4 +48,48 @@ export function ButtonLightDown({ onClick }) {
 
 export function ButtonLightUp({ onClick }) {
     return <ButtonLight onClick={onClick} classNameStatus="button-100" label="ALZA" />;
+}
+
+export function ButtonSoundUp({ onClick }) {
+    return (
+        <div className="button-description">
+            <button onClick={onClick} className={`button-command button-sound-up`}>
+                <SoundUpIcon />
+            </button>
+            <p>ALZA</p>
+        </div>
+    );
+}
+
+export function ButtonSoundDown({ onClick }) {
+    return (
+        <div className="button-description">
+            <button onClick={onClick} className={`button-command button-sound-down`}>
+                <SoundDownIcon />
+            </button>
+            <p>ABBASSA</p>
+        </div>
+    );
+}
+
+export function ButtonCold({ onClick }) {
+    return (
+        <div className="button-description">
+            <button onClick={onClick} className={`button-command button-cold`}>
+                <ColdIcon fill="#ffffff" />
+            </button>
+            <p>FREDDA</p>
+        </div>
+    );
+}
+
+export function ButtonHot({ onClick }) {
+    return (
+        <div className="button-description">
+            <button onClick={onClick} className={`button-command button-hot`}>
+                <HotIcon fill="#ffffff" />
+            </button>
+            <p>CALDA</p>
+        </div>
+    );
 }

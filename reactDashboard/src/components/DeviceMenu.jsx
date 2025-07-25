@@ -3,7 +3,10 @@ import {
   ButtonOn,
   ButtonOff,
   ButtonLightDown,
-  ButtonLightUp
+  ButtonLightUp,
+  ButtonToggle,
+  ButtonCold,
+  ButtonHot
 } from '../components/Buttons';
 import { sendGlobalCommand, sendGeneralLightCommand } from '../api/Api';
 
@@ -36,11 +39,14 @@ export default function DeviceMenu({ devices, onSelect }) {
       <div className='control-panel'>
         <h2>Luci</h2>
         <div className="controls-row">
-          <ButtonOn onClick={() => sendGeneralLightCommand('ON')} />
-          <ButtonOff onClick={() => sendGeneralLightCommand('OFF')} />
+          <ButtonToggle onClick={() => sendGeneralLightCommand('ON')} />
           <ButtonLightUp onClick={() => sendGeneralLightCommand('LIGHT_UP')} />
+          <ButtonLightDown onClick={() => sendGeneralLightCommand('LIGHT_DOWN')} />
         </div>
-        <ButtonLightDown onClick={() => sendGeneralLightCommand('LIGHT_DOWN')} />
+        <div className="controls-row">
+          <ButtonCold onClick={() => sendGeneralLightCommand('COLD_UP')} />
+          <ButtonHot onClick={() => sendGeneralLightCommand('WARM_UP')} />
+        </div>
       </div>
 
 

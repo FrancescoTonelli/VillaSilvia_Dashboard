@@ -5,3 +5,4 @@ cd ../reactDashboard/
 cd ../mqttServer
 mvn clean install
 sudo systemctl restart mqttServer.service
+journalctl -u mqttServer.service -f

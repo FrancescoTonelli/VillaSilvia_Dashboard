@@ -262,6 +262,14 @@ public class MqttService {
                 publish(plafTopic, "LIGHT_DOWN");
                 System.out.println("Luce generale in diminuzione");
                 break;
+            case "WARM_UP":
+                publish(plafTopic, "WARM_UP");
+                System.out.println("Luce generale calda");
+                break;
+            case "COLD_UP":
+                publish(plafTopic, "COLD_UP");
+                System.out.println("Luce generale fredda");
+                break;
             default:
                 System.err.println("Comando sconosciuto per luce generale: " + command);
         }
@@ -281,6 +289,14 @@ public class MqttService {
             case "OFF":
                 publish(audioTopic, "OFF");
                 System.out.println("Audio spento");
+                break;
+            case "AUDIO_UP":
+                publish(audioTopic, "AUDIO_UP");
+                System.out.println("Audio in aumento");
+                break;
+            case "AUDIO_DOWN":
+                publish(audioTopic, "AUDIO_DOWN");
+                System.out.println("Audio in diminuzione");
                 break;
             default:
                 System.err.println("Comando sconosciuto per audio: " + command);

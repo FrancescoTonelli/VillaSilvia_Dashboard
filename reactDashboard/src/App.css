@@ -208,6 +208,10 @@ button:focus {
   background-color: red;
 }
 
+.button-toggle {
+  background-color: yellowgreen;
+}
+
 .button-50 {
   background-color: orange;
 }
@@ -215,13 +219,28 @@ button:focus {
   background-color: blue;
 }
 
+.button-sound-up {
+  background-color: blue;
+}
+
+.button-sound-down {
+  background-color: orange;
+}
+
+.button-cold {
+  background-color: lightblue;
+}
+
+.button-hot {
+  background-color: lightcoral;
+}
+
 .bonci-mode-page {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  margin-top: 200px;
-  gap: 20px;
+  height: calc(90vh - var(--navbarHeight));
 }
 
 .button-start {

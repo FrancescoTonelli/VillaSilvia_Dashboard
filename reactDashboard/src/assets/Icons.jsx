@@ -126,3 +126,151 @@ export function PlayIcon({
     </svg>
   );
 }
+
+export function ReloadIcon({
+  width = 100,
+  height = width,
+  fill = '#ffffff',
+  className = '',
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      width={width}
+      height={height}
+      className={className}
+    >
+      <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+      <g id="SVGRepo_iconCarrier">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M2.05939 10.8927C2.59723 5.90964 6.72911 2 11.7875 2C14.6474 2 17.2148 3.25301 19 5.23997V4C19 3.44772 19.4477 3 20 3C20.5523 3 21 3.44772 21 4V8C21 8.26522 20.8946 8.51957 20.7071 8.70711C20.5195 8.89464 20.2652 9 20 9L16 9C15.4477 9 15 8.55228 15 8C15 7.44771 15.4477 7 16 7L17.867 7C16.4351 5.16504 14.2403 4 11.7875 4C7.79954 4 4.4814 7.09046 4.04784 11.1073C3.98857 11.6564 3.4954 12.0535 2.9463 11.9942C2.3972 11.935 2.00012 11.4418 2.05939 10.8927ZM21.0537 12.0058C21.6028 12.065 21.9999 12.5582 21.9406 13.1073C21.4028 18.0904 17.2709 22 12.2125 22C9.35262 22 6.78516 20.747 4.99998 18.76V20C4.99998 20.5523 4.55227 21 3.99998 21C3.4477 21 2.99998 20.5523 2.99998 20L2.99998 16C2.99998 15.7348 3.10534 15.4804 3.29287 15.2929C3.48041 15.1054 3.73476 15 3.99998 15L7.99998 15C8.55227 15 8.99998 15.4477 8.99998 16C8.99998 16.5523 8.55227 17 7.99998 17H6.13297C7.56485 18.835 9.75975 20 12.2125 20C16.2005 20 19.5186 16.9095 19.9522 12.8927C20.0114 12.3436 20.5046 11.9465 21.0537 12.0058Z"
+          fill={fill}
+        />
+      </g>
+    </svg>
+  );
+}
+
+export function ColdIcon({
+  width = 38,
+  height = width,
+  fill = '#ffffff',
+  className = '',
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      stroke={fill}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width={width}
+      height={height}
+      className={className}
+    >
+      <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+      <g id="SVGRepo_iconCarrier">
+        <path d="M11.9994 3V7M11.9994 7V17M11.9994 7L8.99943 4M11.9994 7L14.9994 4M11.9994 17V21M11.9994 17L8.99943 20M11.9994 17L14.9994 20M4.20624 7.49999L7.67034 9.49999M7.67034 9.49999L16.3306 14.5M7.67034 9.49999L3.57227 10.5981M7.67034 9.49999L6.57227 5.40191M16.3306 14.5L19.7947 16.5M16.3306 14.5L17.4287 18.5981M16.3306 14.5L20.4287 13.4019M4.2067 16.5L7.6708 14.5M7.6708 14.5L16.3311 9.49999M7.6708 14.5L3.57273 13.4019M7.6708 14.5L6.57273 18.5981M16.3311 9.49999L19.7952 7.49999M16.3311 9.49999L17.4291 5.40192M16.3311 9.49999L20.4291 10.5981" />
+      </g>
+    </svg>
+  );
+}
+
+export function HotIcon({
+  width = 35,
+  height = width,
+  fill = '#ffffff',
+  className = '',
+}) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      xmlns="http://www.w3.org/2000/svg"
+      width={width}
+      height={height}
+      className={className}
+    >
+      <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+      <g id="SVGRepo_iconCarrier" fill={fill}>
+        <g>
+          <circle cx="32.003" cy="32.005" r="16.001" />
+          <path d="M12.001,31.997c0-2.211-1.789-4-4-4H4c-2.211,0-4,1.789-4,4s1.789,4,4,4h4C10.212,35.997,12.001,34.208,12.001,31.997z" />
+          <path d="M12.204,46.139l-2.832,2.833c-1.563,1.562-1.563,4.094,0,5.656c1.562,1.562,4.094,1.562,5.657,0l2.833-2.832c1.562-1.562,1.562-4.095,0-5.657C16.298,44.576,13.767,44.576,12.204,46.139z" />
+          <path d="M32.003,51.999c-2.211,0-4,1.789-4,4V60c0,2.211,1.789,4,4,4s4-1.789,4-4l-0.004-4.001C36.003,53.788,34.21,51.999,32.003,51.999z" />
+          <path d="M51.798,46.143c-1.559-1.566-4.091-1.566-5.653-0.004s-1.562,4.095,0,5.657l2.829,2.828c1.562,1.57,4.094,1.562,5.656,0s1.566-4.09,0-5.656L51.798,46.143z" />
+          <path d="M60.006,27.997l-4.009,0.008c-2.203-0.008-3.992,1.781-3.992,3.992c-0.008,2.211,1.789,4,3.992,4h4.001c2.219,0.008,4-1.789,4-4C64.002,29.79,62.217,27.997,60.006,27.997z" />
+          <path d="M51.798,17.859l2.828-2.829c1.574-1.566,1.562-4.094,0-5.657c-1.559-1.567-4.09-1.567-5.652-0.004l-2.829,2.836c-1.562,1.555-1.562,4.086,0,5.649C47.699,19.426,50.239,19.418,51.798,17.859z" />
+          <path d="M32.003,11.995c2.207,0.016,4-1.789,4-3.992v-4c0-2.219-1.789-4-4-4c-2.211-0.008-4,1.781-4,3.993l0.008,4.008C28.003,10.206,29.792,11.995,32.003,11.995z" />
+          <path d="M12.212,17.855c1.555,1.562,4.079,1.562,5.646-0.004c1.574-1.551,1.566-4.09,0.008-5.649l-2.829-2.828c-1.57-1.571-4.094-1.559-5.657,0c-1.575,1.559-1.575,4.09-0.012,5.653L12.212,17.855z" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+export function SoundUpIcon({
+  width = 35,
+  height = width,
+  fill = '#ffffff',
+  className = '',
+}) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      stroke={fill}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
+      width={width}
+      height={height}
+      className={className}
+    >
+      <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+      <g id="SVGRepo_iconCarrier">
+        <polygon points="1.75 5.75,1.75 10.25,4.25 10.25,8.25 13.25,8.25 2.75,4.25 5.75" />
+        <path d="m10.75 6.25s1 .5 1 1.75-1 1.75-1 1.75m1-6.5c2 1 3 2.5 3 4.75s-1 3.75-3 4.75" />
+      </g>
+    </svg>
+  );
+}
+
+export function SoundDownIcon({
+  width = 35,
+  height = width,
+  fill = '#ffffff',
+  className = '',
+}) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      stroke={fill}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
+      width={width}
+      height={height}
+      className={className}
+    >
+      <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+      <g id="SVGRepo_iconCarrier">
+        <polygon points="1.75 5.75 1.75 10.25 4.25 10.25 8.25 13.25 8.25 2.75 4.25 5.75" />
+        <path d="m10.75 6.25s1 .5 1 1.75-1 1.75-1 1.75" />
+      </g>
+    </svg>
+  );
+}
