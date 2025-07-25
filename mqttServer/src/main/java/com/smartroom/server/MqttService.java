@@ -147,7 +147,7 @@ public class MqttService {
         JsonArray lights = data.getJsonArray("lights");
 
         if (deviceId.equals("videoPlayer-intro")) {
-            publish(plafTopic, "LIGHT_DOWN");
+            publish(plafTopic, "LIGHT_MIN");
             publish(audioTopic, "OFF");
         }
 
@@ -176,7 +176,7 @@ public class MqttService {
         System.out.println("Video terminato su " + deviceId);
         if (deviceId.equals("videoPlayer-piano")) {
             publish(plafTopic, "ON");
-            publish(plafTopic, "LIGHT_UP");
+            publish(plafTopic, "LIGHT_MAX");
             publish(audioTopic, "ON");
         }
     }

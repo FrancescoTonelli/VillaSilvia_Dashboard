@@ -39,11 +39,12 @@ export default function DeviceMenu({ devices, onSelect }) {
       <div className='control-panel'>
         <h2>Luci</h2>
         <div className="controls-row">
-          <ButtonToggle onClick={() => sendGeneralLightCommand('ON')} />
+          <ButtonOn onClick={() => sendGeneralLightCommand('ON')} />
+          <ButtonOff onClick={() => sendGeneralLightCommand('OFF')} />
           <ButtonLightUp onClick={() => sendGeneralLightCommand('LIGHT_UP')} />
-          <ButtonLightDown onClick={() => sendGeneralLightCommand('LIGHT_DOWN')} />
         </div>
         <div className="controls-row">
+          <ButtonLightDown onClick={() => sendGeneralLightCommand('LIGHT_DOWN')} />
           <ButtonCold onClick={() => sendGeneralLightCommand('COLD_UP')} />
           <ButtonHot onClick={() => sendGeneralLightCommand('WARM_UP')} />
         </div>

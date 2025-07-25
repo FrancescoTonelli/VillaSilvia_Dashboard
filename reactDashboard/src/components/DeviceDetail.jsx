@@ -72,7 +72,8 @@ export default function DeviceDetail({ deviceId, onClose }) {
       {type === 'plafoniera' && (
         <>
           <div className="controls-row">
-            <ButtonToggle onClick={() => sendCommandToDevice(deviceId, 'ON')} />
+            <ButtonOn onClick={() => sendCommandToDevice(deviceId, 'ON')} />
+            <ButtonOff onClick={() => sendCommandToDevice(deviceId, 'OFF')} />
             <ButtonLightUp onClick={() => sendCommandToDevice(deviceId, 'LIGHT_UP')}/>
             <ButtonLightDown onClick={() => sendCommandToDevice(deviceId, 'LIGHT_DOWN')}/>
             <ButtonCold onClick={() => sendCommandToDevice(deviceId, 'COLD_UP')} />
