@@ -20,8 +20,8 @@ public class MqttService {
     private final String dataTopic = "bonci/online_data"; // dispositivi -> broker (DEVICEID,IP......)
 
     private Boolean pianoAlreadyTriggered = false;
-    // si riferisce alla stazione del pianoforte, infatti il suo sonar
-    // può essere triggerato 2 volte
+    private Boolean introAlreadyTriggered = false;
+   
 
     public MqttService(Vertx vertx, String brokerHost, int brokerPort) {
         this.client = MqttClient.create(vertx, new MqttClientOptions());
@@ -146,9 +146,10 @@ public class MqttService {
         System.out.println("Trigger ricevuto da " + deviceId + ": " + data.encodePrettily());
         JsonArray lights = data.getJsonArray("lights");
 
-        if (deviceId.equals("videoPlayer-intro")) {
+        if (deviceId.equals("videoPlayer-intro") && !introAlreadyTriggered) {
             publish(plafTopic, "LIGHT_MIN");
             publish(audioTopic, "OFF");
+            introAlreadyTriggered = true;
         }
 
         if (deviceId.equals("videoPlayer-piano") && pianoAlreadyTriggered) {
@@ -160,7 +161,6 @@ public class MqttService {
 
                 publishShellyCommand(topic, false);
             });
-            publish(plafTopic, "OFF");
             return;
         }
         if (deviceId.equals("videoPlayer-piano")) {
@@ -174,7 +174,7 @@ public class MqttService {
 
     private void handleEnded(String deviceId) {
         System.out.println("Video terminato su " + deviceId);
-        if (deviceId.equals("videoPlayer-piano")) {
+        if (deviceId.equals("videoPlayer-intro") && introAlreadyTriggered) {
             publish(plafTopic, "ON");
             publish(plafTopic, "LIGHT_MAX");
             publish(audioTopic, "ON");
@@ -226,6 +226,8 @@ public class MqttService {
                 publish(videoTopic, "WAKE");
                 break;
             case "start_presentation":
+                introAlreadyTriggered = false;
+                pianoAlreadyTriggered = false;
                 publish(plafTopic, "STARTING");
                 publish(audioTopic, "ON");
                 new Thread(() -> {
