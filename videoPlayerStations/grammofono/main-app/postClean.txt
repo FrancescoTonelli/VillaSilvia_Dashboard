@@ -1,0 +1,3 @@
+mvn dependency:copy-dependencies -DoutputDirectory=target/distribution
+
+sposti dentro anche il jar e lo start.sh

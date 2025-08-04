@@ -1,0 +1,12 @@
+[
+    {
+        "id": "shelly-disco",
+        "onAfter": 86,
+        "offAfter": 94
+    },
+    {
+        "id": "shelly-grammofono1",
+        "onAfter": 95,
+        "offAfter": 113
+    }
+]

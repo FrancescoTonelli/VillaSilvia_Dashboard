@@ -35,7 +35,8 @@ public class MqttHandler {
                 .setAutoKeepAlive(true)
                 .setWillTopic(dataTopic)
                 .setWillMessage(Buffer.buffer(lwt.encode()))
-                .setWillQos(MqttQoS.AT_LEAST_ONCE);
+                .setWillQos(MqttQoS.AT_LEAST_ONCE)
+                .setWillRetain(false);
 
         client = MqttClient.create(vertx, options);
         attemptConnection();

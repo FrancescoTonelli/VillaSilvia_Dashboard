@@ -19,7 +19,6 @@ public class Main extends Application {
     private Vertx vertx;
     private MqttClient client;
     private AudioPlayer player = new AudioPlayer();
-    private final String deviceId = "audioPlayer";
 
     private final String brokerHost = "192.168.0.2";
     private final int brokerPort = 1883;
@@ -34,18 +33,19 @@ public class Main extends Application {
     }
 
     private void connectToBroker() {
-
         JsonObject lwt = new JsonObject()
-            .put("online", false)
-            .put("deviceId", deviceId)
-            .put("os", System.getProperty("os.name"))
-            .put("timestamp", System.currentTimeMillis());
-        
+                .put("online", false)
+                .put("deviceId", "audioPlayer")
+                .put("os", System.getProperty("os.name"))
+                .put("timestamp", System.currentTimeMillis());
+
         MqttClientOptions options = new MqttClientOptions()
-            .setAutoKeepAlive(true)
-            .setWillTopic(dataTopic)
-            .setWillMessage(Buffer.buffer(lwt.encode()))
-            .setWillQos(MqttQoS.AT_LEAST_ONCE);
+                .setAutoKeepAlive(true)
+                .setWillFlag(true)
+                .setWillTopic(dataTopic)
+                .setWillMessage(lwt.encode())
+                .setWillQoS(0)
+                .setWillRetain(false);
 
         client = MqttClient.create(vertx, options);
         attemptConnection();
@@ -61,7 +61,7 @@ public class Main extends Application {
 
                 JsonObject onlinePayload = new JsonObject()
                         .put("online", true)
-                        .put("deviceId", deviceId)
+                        .put("deviceId", "audioPlayer")
                         .put("os", System.getProperty("os.name"))
                         .put("timestamp", System.currentTimeMillis());
 
@@ -105,8 +105,15 @@ public class Main extends Application {
             case "PAUSE":
                 pause();
                 break;
+            case "VOLUME_UP":
+                volume_up();
+                break;
+            case "VOLUME_DOWN":
+                volume_down();
+                break;
             case "SHUTDOWN":
                 shutdown();
+                break;
             default:
                 System.out.println("Messaggio non riconosciuto: " + payload);
         }
@@ -132,10 +139,20 @@ public class Main extends Application {
         }
     }
 
-    private void volume(double volume) {
-        if (player.getStatus() == MediaPlayer.Status.PLAYING) {
-            player.setVolume(volume);
+    private void volume_up() {
+        double currentVolume = player.getVolume();
+        if (currentVolume < 1.0) {
+            player.setVolume(currentVolume + 0.1);
         }
+
+    }
+
+    private void volume_down() {
+        double currentVolume = player.getVolume();
+        if (currentVolume > 0.1) {
+            player.setVolume(currentVolume - 0.1);
+        }
+
     }
 
     @Override

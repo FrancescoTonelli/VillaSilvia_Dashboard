@@ -149,7 +149,6 @@ public class MqttService {
         if (deviceId.equals("videoPlayer-intro") && !introAlreadyTriggered) {
             publish(plafTopic, "LIGHT_MIN");
             publish(audioTopic, "OFF");
-            introAlreadyTriggered = true;
         }
 
         if (deviceId.equals("videoPlayer-piano") && pianoAlreadyTriggered) {
@@ -174,10 +173,15 @@ public class MqttService {
 
     private void handleEnded(String deviceId) {
         System.out.println("Video terminato su " + deviceId);
-        if (deviceId.equals("videoPlayer-intro") && introAlreadyTriggered) {
-            publish(plafTopic, "ON");
-            publish(plafTopic, "LIGHT_MAX");
-            publish(audioTopic, "ON");
+        if (deviceId.equals("videoPlayer-intro")) {
+            if (introAlreadyTriggered) {
+                publish(plafTopic, "ON");
+                publish(plafTopic, "LIGHT_MAX");
+                publish(audioTopic, "ON");
+            }
+            else {
+                introAlreadyTriggered = true;
+            }
         }
     }
 
