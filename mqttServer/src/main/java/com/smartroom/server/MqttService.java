@@ -7,6 +7,9 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
+
+import java.util.Optional;
+
 import com.smartroom.model.DeviceStatusManager;
 
 public class MqttService {
@@ -21,6 +24,9 @@ public class MqttService {
 
     private Boolean pianoAlreadyTriggered = false;
     private Boolean introAlreadyTriggered = false;
+
+    private long lastWakeTime = 0;
+    private final long WAKE_COOLDOWN = 10000;
    
 
     public MqttService(Vertx vertx, String brokerHost, int brokerPort) {
@@ -35,6 +41,17 @@ public class MqttService {
                 System.err.println("Connessione MQTT fallita: " + result.cause().getMessage());
             }
         });
+    }
+
+    // Necessario per evitare "doppie accensioni" ravvicinate degli schermi.
+    // fuori dai 10 secondi saranno le stazioni a scartarle
+    private boolean canWakeVideo() {
+        long currentTime = System.currentTimeMillis(); 
+        if (currentTime - lastWakeTime >= WAKE_COOLDOWN) {
+            lastWakeTime = currentTime;
+            return true; 
+        }
+        return false;
     }
 
     // Iscrizione ai topic MQTT da cui deve ricevere messaggi
@@ -204,6 +221,7 @@ public class MqttService {
 
         if (deviceId.contains("videoPlayer")) {
             System.out.println("Video player connesso");
+            lastWakeTime = System.currentTimeMillis();
         }
     }
 
@@ -227,7 +245,12 @@ public class MqttService {
             case "wake":
                 publish(audioTopic, "ON");
                 publish(plafTopic, "ON");
-                publish(videoTopic, "WAKE");
+                if (canWakeVideo()) {
+                    publish(videoTopic, "WAKE");
+                }
+                else {
+                    System.out.println("Wake bloccato sui video, cooldown ancora in corso");
+                }
                 break;
             case "start_presentation":
                 introAlreadyTriggered = false;
@@ -324,11 +347,14 @@ public class MqttService {
         switch (command) {
             case "SLEEP":
                 publish(videoTopic, "SLEEP");
-                System.out.println("Video spento");
                 break;
             case "WAKE":
-                publish(videoTopic, "WAKE");
-                System.out.println("Video acceso");
+                if (canWakeVideo()) {
+                    publish(videoTopic, "WAKE");
+                }
+                else {
+                    System.out.println("Wake bloccato sui video, cooldown ancora in corso");
+                }
                 break;
             default:
                 System.err.println("Comando sconosciuto per video: " + command);

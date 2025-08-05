@@ -11,6 +11,7 @@ public class ProcessManager {
     // modalità risparmio energetico (solo se non è il primo avvio)
 
     public void startPlayVideoApp(Boolean first) {
+
         if (videoPlayerProcess != null && videoPlayerProcess.isAlive()) {
             System.out.println("videoPlayer è già in esecuzione");
             return;

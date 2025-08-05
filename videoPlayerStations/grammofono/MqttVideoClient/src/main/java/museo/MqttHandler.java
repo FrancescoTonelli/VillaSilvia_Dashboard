@@ -21,6 +21,8 @@ public class MqttHandler {
     private final String eventTopic = "bonci/videoPlayer/event"; // videoPlayer -> broker
     private final String dataTopic = "bonci/online_data"; // videoPlayer -> broker
 
+    private boolean isAwaken;
+
     public MqttHandler(Vertx vertx) {
         this.vertx = vertx;
         this.manager = new ProcessManager();
@@ -51,6 +53,7 @@ public class MqttHandler {
                 publishData();
 
                 client.closeHandler(v -> {
+                    isAwaken = false;
                     System.err.println("Connessione MQTT persa. Riprovo tra 10s...");
                     manager.stopPlayVideoApp();
                     vertx.setTimer(10_000, id -> attemptConnection());
@@ -58,6 +61,7 @@ public class MqttHandler {
                 });
 
                 vertx.executeBlocking(promise -> {
+                    isAwaken = true;
                     manager.startPlayVideoApp(true);
                     promise.complete();
                 }, false, res -> {
@@ -150,6 +154,7 @@ public class MqttHandler {
                         }
                         break;
                     case "SLEEP":
+                        isAwaken = false;
                         vertx.executeBlocking(promise -> {
                             manager.stopPlayVideoApp();
                             promise.complete();
@@ -158,11 +163,16 @@ public class MqttHandler {
                         });
                         break;
                     case "WAKE":
-                        vertx.executeBlocking(promise -> {
-                            manager.startPlayVideoApp(false);
-                            promise.complete();
-                        }, false, res -> {
-                        });
+                        if (!isAwaken) {
+                            isAwaken = true;
+                            vertx.executeBlocking(promise -> {
+                                manager.startPlayVideoApp(false);
+                                promise.complete();
+                            }, false, res -> {
+                            });
+                        } else {
+                            System.out.println("WAKE bloccato, dispositivo già attivo");
+                        }
                         break;
 
                     default:

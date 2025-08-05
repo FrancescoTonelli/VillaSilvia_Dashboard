@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ProcessManager {
 
-    private Process videoPlayerProcess;
+    private Process videoPlayerProcess = null;
 
     // Metodo usato per avviare l'applicazione video e mandare il Raspberry Pi in
     // modalità risparmio energetico (solo se non è il primo avvio)
