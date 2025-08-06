@@ -3,14 +3,19 @@ package museo;
 import io.vertx.core.Vertx;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
-
 import io.netty.handler.codec.mqtt.MqttQoS;
-
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.IOException;
+
 public class MqttHandler {
+
+    private final String wifiSSID = "Bonci_WiFi";      
+    private final String wifiPassword = "BonciRoom1";
 
     private final MqttClient client;
     private final String deviceId = "videoPlayer-intro";
@@ -18,6 +23,7 @@ public class MqttHandler {
     private final ProcessManager manager;
 
     private final String commandTopic = "bonci/videoPlayer/command"; // broker -> videoPlayer
+    private final String privateCommandTopic = "bonci/" + deviceId + "/command"; // borker -> videoPlayer (private)
     private final String eventTopic = "bonci/videoPlayer/event"; // videoPlayer -> broker
     private final String dataTopic = "bonci/online_data"; // videoPlayer -> broker
 
@@ -45,8 +51,60 @@ public class MqttHandler {
         attemptConnection();
     }
 
+    private boolean checkWifi() {
+        try {
+            Process check = Runtime.getRuntime().exec("iwgetid -r");
+            check.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(check.getInputStream()));
+            String ssid = reader.readLine();
+
+            if (ssid != null && !ssid.isEmpty()) {
+                System.out.println("Wi-Fi connesso alla rete: " + ssid);
+                return true;
+            }
+            return false;
+        } catch(Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Assicura di essersi connesso al WiFi
+    private boolean ensureWifiConnected() {
+        try {
+
+            if (checkWifi()) {
+                return true;
+            }
+
+            Process connect = Runtime.getRuntime().exec(
+                    new String[]{"bash", "-c", "nmcli dev wifi connect '" + wifiSSID + "' password '" + wifiPassword + "'"});
+            connect.waitFor();
+
+    
+            if (checkWifi()) {
+                return true;
+            } else {
+                System.err.println("Impossibile riconnettersi al Wi-Fi.");
+                return false;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public void attemptConnection() {
+
+        if (!ensureWifiConnected()) {
+            System.err.println("Nessuna connessione Wi-Fi. Riprovo tra 10s...");
+            vertx.setTimer(10_000, id -> attemptConnection());
+            return;
+        }
+
         client.connect(1883, "192.168.0.2", ar -> {
+
             if (ar.succeeded()) {
                 System.out.println("Connesso al broker Mqtt");
                 subscribeToTopics();
@@ -138,13 +196,14 @@ public class MqttHandler {
     // ricezione dei messaggi su di esso
     public void subscribeToTopics() {
         client.subscribe(commandTopic, MqttQoS.AT_LEAST_ONCE.value());
+        client.subscribe(privateCommandTopic, MqttQoS.AT_LEAST_ONCE.value());
 
         client.publishHandler(msg -> {
             String payload = msg.payload().toString();
             String topic = msg.topicName();
             System.out.println("Ricevuto comando MQTT: " + payload + "su topic " + topic);
 
-            if (topic.equals(commandTopic)) {
+            if (topic.equals(commandTopic) || topic.equals(privateCommandTopic)) {
                 switch (payload) {
                     case "SHUTDOWN":
                         try {

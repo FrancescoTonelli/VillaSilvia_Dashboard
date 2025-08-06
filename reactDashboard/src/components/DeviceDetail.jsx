@@ -18,6 +18,7 @@ import {
   ButtonCold,
   ButtonHot
 } from '../components/Buttons';
+import MaintenancePanel from './MaintenancePanel';
 
 export default function DeviceDetail({ deviceId, onClose }) {
   const [device, setDevice] = useState(null);
@@ -58,15 +59,26 @@ export default function DeviceDetail({ deviceId, onClose }) {
             <ButtonSoundUp onClick={() => sendAudioGeneralCommand('AUDIO_UP')} />
             <ButtonSoundDown onClick={() => sendAudioGeneralCommand('AUDIO_DOWN')} />
           </div>
+
+          <div className="foot-spacer" />
+          <MaintenancePanel 
+              text="Sei sicuro di voler spegnere il dispositivo dell'audio?" 
+              onConfirm={() => sendAudioGeneralCommand("SHUTDOWN")}
+            />
         </>
       )}
       {type === 'videoPlayer' && (
         <>
-          <h2>Controllo generale video</h2>
           <div className="controls-row">
-            <ButtonOn onClick={() => sendVideoGeneralCommand('WAKE')} />
-            <ButtonOff onClick={() => sendVideoGeneralCommand('SLEEP')} />
+            <ButtonOn onClick={() => sendCommandToDevice(deviceId, 'WAKE')} />
+            <ButtonOff onClick={() => sendCommandToDevice(deviceId, 'SLEEP')} />
           </div>
+
+          <div className="foot-spacer" />
+          <MaintenancePanel 
+              text="Sei sicuro di voler spegnere questo videoPlayer?"
+              onConfirm={() => sendCommandToDevice(deviceId, 'SHUTDOWN')}
+            />
         </>
       )}
       {type === 'plafoniera' && (
@@ -94,6 +106,8 @@ export default function DeviceDetail({ deviceId, onClose }) {
           </div>
         </>
       )}
+
+      <div className="foot-spacer" />
     </div>
   );
 }

@@ -8,13 +8,22 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 
-import java.util.Optional;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.IOException;
 
 import com.smartroom.model.DeviceStatusManager;
 
 public class MqttService {
 
+    private final Vertx vertx;
+    private final String brokerHost;
+    private final int brokerPort;
     private final MqttClient client;
+
+    private static final String WIFI_SSID = "Bonci_WiFi";
+    private static final String WIFI_PASSWORD = "BonciRoom1";
+
     private final String audioTopic = "bonci/audioPlayer/command"; // broker -> audioPlayer (ON,OFF,VOLUME...)
     private final String plafTopic = "bonci/plafoniere/command"; // broker -> plafoniere (ON,OFF,LIGHT_UP......)
     private final String videoTopic = "bonci/videoPlayer/command"; // broker -> videoPlayer
@@ -27,29 +36,87 @@ public class MqttService {
 
     private long lastWakeTime = 0;
     private final long WAKE_COOLDOWN = 10000;
-   
 
     public MqttService(Vertx vertx, String brokerHost, int brokerPort) {
+        this.vertx = vertx;
+        this.brokerHost = brokerHost;
+        this.brokerPort = brokerPort;
         this.client = MqttClient.create(vertx, new MqttClientOptions());
 
-        client.connect(brokerPort, brokerHost, result -> {
-            if (result.succeeded()) {
-                System.out.println("MQTT connesso a " + brokerHost + ":" + brokerPort);
-                subscribeToTopics();
-                setupMessageHandler(vertx);
-            } else {
-                System.err.println("Connessione MQTT fallita: " + result.cause().getMessage());
+        attemptConnection();
+
+        // Failsafe periodico: se MQTT si disconnette o il Wi-Fi cade
+        vertx.setPeriodic(10000, id -> {
+            if (!client.isConnected() || !isWifiConnected()) {
+                System.err.println("Verifica connettività fallita: riavvio connessione...");
+                attemptConnection();
             }
         });
+    }
+
+    private void attemptConnection() {
+        if (!ensureWifiConnected()) {
+            System.err.println("Wi-Fi non connesso. Riprovo tra 10s...");
+            vertx.setTimer(10000, id -> attemptConnection());
+            return;
+        }
+
+        System.out.println("Wi-Fi OK, connetto a MQTT...");
+        client.connect(brokerPort, brokerHost, res -> {
+            if (res.succeeded()) {
+                System.out.println("MQTT connesso a " + brokerHost + ":" + brokerPort);
+                subscribeToTopics();
+                setupMessageHandler();
+                client.closeHandler(v -> {
+                    System.err.println("Connessione MQTT persa");
+                    attemptConnection();
+                });
+            } else {
+                System.err.println("Connessione MQTT fallita: " + res.cause().getMessage());
+                vertx.setTimer(5000, tid -> attemptConnection());
+            }
+        });
+    }
+
+    private boolean isWifiConnected() {
+        try {
+            Process check = Runtime.getRuntime().exec("iwgetid -r");
+            check.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(check.getInputStream()));
+            String ssid = reader.readLine();
+            return ssid != null && !ssid.isEmpty();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private boolean ensureWifiConnected() {
+        if (isWifiConnected()) {
+            return true;
+        }
+
+        System.out.println("Wi-Fi non connesso: avvio riconnessione...");
+        try {
+            Process connect = Runtime.getRuntime().exec(new String[]{
+                "bash", "-c",
+                "nmcli dev wifi connect '" + WIFI_SSID + "' password '" + WIFI_PASSWORD + "'"
+            });
+            connect.waitFor();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return isWifiConnected();
     }
 
     // Necessario per evitare "doppie accensioni" ravvicinate degli schermi.
     // fuori dai 10 secondi saranno le stazioni a scartarle
     private boolean canWakeVideo() {
-        long currentTime = System.currentTimeMillis(); 
+        long currentTime = System.currentTimeMillis();
         if (currentTime - lastWakeTime >= WAKE_COOLDOWN) {
             lastWakeTime = currentTime;
-            return true; 
+            return true;
         }
         return false;
     }
@@ -62,7 +129,7 @@ public class MqttService {
     }
 
     // Gestione dei messaggi MQTT ricevuti
-    private void setupMessageHandler(Vertx vertx) {
+    private void setupMessageHandler() {
         client.publishHandler(message -> {
             String topic = message.topicName();
             String payload = message.payload().toString("UTF-8");
@@ -97,7 +164,7 @@ public class MqttService {
                     }
 
                     if (event.equals("triggered")) {
-                        handleTriggered(deviceId, data, vertx);
+                        handleTriggered(deviceId, data);
                     } else if (event.equals("ended")) {
                         handleEnded(deviceId);
                     }
@@ -129,7 +196,7 @@ public class MqttService {
     }
 
     // Gestione Shelly con timer
-    public void shellyManager(JsonArray lights, Vertx vertx) {
+    public void shellyManager(JsonArray lights) {
         lights.forEach(entry -> {
             JsonObject light = (JsonObject) entry;
             String id = light.getString("id");
@@ -159,7 +226,7 @@ public class MqttService {
 
     // Handlers dei vari eventi
 
-    private void handleTriggered(String deviceId, JsonObject data, Vertx vertx) {
+    private void handleTriggered(String deviceId, JsonObject data) {
         System.out.println("Trigger ricevuto da " + deviceId + ": " + data.encodePrettily());
         JsonArray lights = data.getJsonArray("lights");
 
@@ -184,7 +251,7 @@ public class MqttService {
         }
 
         if (lights != null) {
-            shellyManager(lights, vertx);
+            shellyManager(lights);
         }
     }
 
@@ -195,8 +262,7 @@ public class MqttService {
                 publish(plafTopic, "ON");
                 publish(plafTopic, "LIGHT_MAX");
                 publish(audioTopic, "ON");
-            }
-            else {
+            } else {
                 introAlreadyTriggered = true;
             }
         }
@@ -247,27 +313,35 @@ public class MqttService {
                 publish(plafTopic, "ON");
                 if (canWakeVideo()) {
                     publish(videoTopic, "WAKE");
-                }
-                else {
+                } else {
                     System.out.println("Wake bloccato sui video, cooldown ancora in corso");
                 }
                 break;
             case "start_presentation":
                 introAlreadyTriggered = false;
                 pianoAlreadyTriggered = false;
+                new Thread(() -> {
+                    try {
+                        publish(videoTopic, "SLEEP");
+                        Thread.sleep(20000);
+                        publish(videoTopic, "WAKE");
+                    } catch(InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
                 publish(plafTopic, "STARTING");
                 publish(audioTopic, "ON");
                 new Thread(() -> {
                     try {
-                        for(int i = 0; i < 10; i++) {
+                        for (int i = 0; i < 10; i++) {
                             publish(audioTopic, "VOLUME_UP");
                             Thread.sleep(500);
                         }
-                    }catch(InterruptedException e) {
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }).start();
-                System.out.println("Presentazione avviata: luce generale accesa, audio acceso");
+                System.out.println("Presentazione avviata: luce generale accesa, audio acceso, video riavviati");
                 break;
             default:
                 System.err.println("Comando sconosciuto su topic 'control': " + command);
@@ -333,6 +407,10 @@ public class MqttService {
                 publish(audioTopic, "VOLUME_DOWN");
                 System.out.println("Audio in diminuzione");
                 break;
+            case "SHUTDOWN":
+                publish(audioTopic, "SHUTDOWN");
+                System.out.println("Dispositivo audio spento");
+                break;
             default:
                 System.err.println("Comando sconosciuto per audio: " + command);
         }
@@ -351,8 +429,7 @@ public class MqttService {
             case "WAKE":
                 if (canWakeVideo()) {
                     publish(videoTopic, "WAKE");
-                }
-                else {
+                } else {
                     System.out.println("Wake bloccato sui video, cooldown ancora in corso");
                 }
                 break;
@@ -367,13 +444,18 @@ public class MqttService {
             return;
         }
 
-        if (deviceId.contains("plafoniera")) {
-            publish("bonci/" + deviceId + "/command", command);
-            System.out.println("Comando " + command + " inviato a " + deviceId + ".");
+        if (deviceId.contains("shelly")) {
+            if (command.equals("ON") || command.equals("OFF")) {
+                publishShellyCommand(deviceId + "/rpc", command.equals("ON") ? true : false);
+            }
+            return;
         }
 
-        else if (deviceId.contains("shelly") && (command.equals("ON") || command.equals("OFF"))) {
-            publishShellyCommand(deviceId + "/rpc", command.equals("ON") ? true : false);
+        if (deviceId.contains("videoPlayer") && command.equals("WAKE") && !canWakeVideo()) {
+            System.out.println("Wake bloccato su " + deviceId + ", cooldown ancora in corso");
+            return;
         }
+        publish("bonci/" + deviceId + "/command", command);
+        System.out.println("Comando " + command + " inviato a " + deviceId + ".");
     }
 }

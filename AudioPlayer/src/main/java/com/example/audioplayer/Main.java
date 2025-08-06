@@ -14,7 +14,14 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.IOException;
+
 public class Main extends Application {
+
+    private final String wifiSSID = "Bonci_WiFi";      
+    private final String wifiPassword = "BonciRoom1";
 
     private Vertx vertx;
     private MqttClient client;
@@ -51,8 +58,58 @@ public class Main extends Application {
         attemptConnection();
     }
 
+    private boolean checkWifi() {
+        try {
+            Process check = Runtime.getRuntime().exec("iwgetid -r");
+            check.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(check.getInputStream()));
+            String ssid = reader.readLine();
+
+            if (ssid != null && !ssid.isEmpty()) {
+                System.out.println("Wi-Fi connesso alla rete: " + ssid);
+                return true;
+            }
+            return false;
+        } catch(Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Assicura di essersi connesso al WiFi
+    private boolean ensureWifiConnected() {
+        try {
+
+            if (checkWifi()) {
+                return true;
+            }
+
+            Process connect = Runtime.getRuntime().exec(
+                    new String[]{"bash", "-c", "nmcli dev wifi connect '" + wifiSSID + "' password '" + wifiPassword + "'"});
+            connect.waitFor();
+
+    
+            if (checkWifi()) {
+                return true;
+            } else {
+                System.err.println("Impossibile riconnettersi al Wi-Fi.");
+                return false;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private void attemptConnection() {
-        System.out.println("Tentativo di connessione (60 sec max)");
+
+        if (!ensureWifiConnected()) {
+            System.err.println("Nessuna connessione Wi-Fi. Riprovo tra 10s...");
+            vertx.setTimer(10_000, id -> attemptConnection());
+            return;
+        }
+
         client.connect(brokerPort, brokerHost, s -> {
             if (s.succeeded()) {
                 System.out.println("Connesso al broker");
