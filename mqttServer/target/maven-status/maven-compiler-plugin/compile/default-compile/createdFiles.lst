@@ -1,4 +1,5 @@
 com/smartroom/model/DeviceStatusManager.class
 com/smartroom/server/WebServer.class
 com/smartroom/server/MqttService.class
+com/smartroom/server/LogAgent.class
 com/smartroom/Main.class

@@ -3,10 +3,12 @@ import { fetchDevices, connectSocket } from '../api/Api';
 import DeviceGrid from '../components/DeviceGrid';
 import DeviceDetail from '../components/DeviceDetail';
 import DeviceMenu from '../components/DeviceMenu';
+import LogViewer from '../components/LogViewer';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [showLog, setShowLog] = useState(false);
 
   useEffect(() => {
     fetchDevices().then(data =>
@@ -33,14 +35,18 @@ export default function DevicesPage() {
 
 
   return (
-  <div className='device-page'>
-    <DeviceMenu />
-    {selected && (
-      <DeviceDetail deviceId={selected} onClose={() => setSelected(null)} />
-    )}
-    {!selected && (
-      <DeviceGrid devices={devices} onSelect={setSelected} />
-    )}
-  </div>
-);
+    <div className='device-page'>
+      <DeviceMenu />
+
+      {selected && (
+        <DeviceDetail deviceId={selected} onClose={() => setSelected(null)} />
+      )}
+      {!selected && !showLog && (
+        <DeviceGrid devices={devices} onSelect={setSelected} onLog={() => setShowLog(true)} />
+      )}
+      { showLog && (
+        <LogViewer onClose={() => setShowLog(false)} />  
+      )}
+    </div>
+  );
 }

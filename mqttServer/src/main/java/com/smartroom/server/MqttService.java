@@ -10,6 +10,8 @@ import io.vertx.mqtt.MqttClientOptions;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.io.IOException;
 
 import com.smartroom.model.DeviceStatusManager;
@@ -20,6 +22,7 @@ public class MqttService {
     private final String brokerHost;
     private final int brokerPort;
     private final MqttClient client;
+    private final LogAgent logger;
 
     private static final String WIFI_SSID = "Bonci_WiFi";
     private static final String WIFI_PASSWORD = "BonciRoom1";
@@ -30,6 +33,11 @@ public class MqttService {
     private final String videoEventTopic = "bonci/videoPlayer/event"; // videoPlayer -> broker (TRIGGERED,ENDED)
     private final String powerTopic = "bonci/power/command"; // pannello -> broker (SHUTDOWN,SLEEP,WAKE_UP)
     private final String dataTopic = "bonci/online_data"; // dispositivi -> broker (DEVICEID,IP......)
+    private final String logTopic = "bonci/log"; // dispositivi -> broker (messaggi di log)
+
+    private final List<String> lightCommands = List.of("ON", "OFF", "LIGHT_UP", "LIGHT_DOWN", "COLD_UP", "WARM_UP");
+    private final List<String> audioCommands = List.of("ON", "OFF", "AUDIO_UP", "AUDIO_DOWN", "SHUTDOWN");
+    private final List<String> videoCommands = List.of("SLEEP", "WAKE");
 
     private Boolean pianoAlreadyTriggered = false;
     private Boolean introAlreadyTriggered = false;
@@ -42,40 +50,49 @@ public class MqttService {
         this.brokerHost = brokerHost;
         this.brokerPort = brokerPort;
         this.client = MqttClient.create(vertx, new MqttClientOptions());
+        this.logger = new LogAgent(vertx);
 
         attemptConnection();
 
         // Failsafe periodico: se MQTT si disconnette o il Wi-Fi cade
         vertx.setPeriodic(10000, id -> {
             if (!client.isConnected() || !isWifiConnected()) {
-                System.err.println("Verifica connettività fallita: riavvio connessione...");
+                log("ERROR", "broker", "Verifica connettività fallita: riavvio connessione...");
                 attemptConnection();
             }
         });
     }
 
+    public void log(String type, String device, String message) {
+        this.logger.log(type, device, message);
+        var stream = type.equals("ERROR") ? System.err : System.out;
+        stream.println(device + ": " + type + " | " + message);
+    }
+
     private void attemptConnection() {
         if (!ensureWifiConnected()) {
-            System.err.println("Wi-Fi non connesso. Riprovo tra 10s...");
+            log("ERROR", "broker", "Wi-Fi non connesso. Riprovo tra 10s...");
             vertx.setTimer(10000, id -> attemptConnection());
             return;
         }
 
-        System.out.println("Wi-Fi OK, connetto a MQTT...");
-        client.connect(brokerPort, brokerHost, res -> {
-            if (res.succeeded()) {
-                System.out.println("MQTT connesso a " + brokerHost + ":" + brokerPort);
-                subscribeToTopics();
-                setupMessageHandler();
-                client.closeHandler(v -> {
-                    System.err.println("Connessione MQTT persa");
-                    attemptConnection();
-                });
-            } else {
-                System.err.println("Connessione MQTT fallita: " + res.cause().getMessage());
-                vertx.setTimer(5000, tid -> attemptConnection());
-            }
-        });
+        log("INFO", "broker", "Wi-Fi OK, connetto a MQTT...");
+        if (!client.isConnected()) {
+            client.connect(brokerPort, brokerHost, res -> {
+                if (res.succeeded()) {
+                    log("INFO", "broker", "MQTT connesso a " + brokerHost + ":" + brokerPort);
+                    subscribeToTopics();
+                    setupMessageHandler();
+                    client.closeHandler(v -> {
+                        log("ERROR", "broker", "Connessione MQTT persa");
+                        attemptConnection();
+                    });
+                } else {
+                    log("ERROR", "broker", "Connessione MQTT fallita: " + res.cause().getMessage());
+                    vertx.setTimer(5000, tid -> attemptConnection());
+                }
+            });
+        }
     }
 
     private boolean isWifiConnected() {
@@ -87,6 +104,7 @@ public class MqttService {
             return ssid != null && !ssid.isEmpty();
         } catch (Exception e) {
             e.printStackTrace();
+            log("ERROR", "broker", e.getMessage());
             return false;
         }
     }
@@ -95,15 +113,15 @@ public class MqttService {
         if (isWifiConnected()) {
             return true;
         }
-
-        System.out.println("Wi-Fi non connesso: avvio riconnessione...");
+        log("INFO", "broker", "Wi-Fi non connesso: avvio riconnessione...");
         try {
-            Process connect = Runtime.getRuntime().exec(new String[]{
-                "bash", "-c",
-                "nmcli dev wifi connect '" + WIFI_SSID + "' password '" + WIFI_PASSWORD + "'"
+            Process connect = Runtime.getRuntime().exec(new String[] {
+                    "bash", "-c",
+                    "nmcli dev wifi connect '" + WIFI_SSID + "' password '" + WIFI_PASSWORD + "'"
             });
             connect.waitFor();
         } catch (IOException | InterruptedException e) {
+            log("ERROR", "broker", e.getMessage());
             e.printStackTrace();
         }
 
@@ -126,6 +144,7 @@ public class MqttService {
         client.subscribe(dataTopic, 0);
         client.subscribe(videoEventTopic, 0);
         client.subscribe(powerTopic, 0);
+        client.subscribe(logTopic, 0);
     }
 
     // Gestione dei messaggi MQTT ricevuti
@@ -139,7 +158,7 @@ public class MqttService {
             try {
                 data = new JsonObject(payload);
             } catch (Exception e) {
-                System.err.println("Payload non valido (non JSON) su topic " + topic + ": " + payload);
+                log("ERROR", "broker", "Payload non valido (non JSON) su topic " + topic + ": " + payload);
                 return;
             }
 
@@ -148,7 +167,7 @@ public class MqttService {
                 case powerTopic:
                     String command = data.getString("command");
                     if (command == null) {
-                        System.err.println("Comando assente in JSON su topic 'control': " + payload);
+                        log("ERROR", "broker", "Comando assente in JSON su topic 'control': " + payload);
                         return;
                     }
                     handleControl(command);
@@ -159,7 +178,7 @@ public class MqttService {
                     deviceId = data.getString("deviceId");
                     String event = data.getString("event");
                     if (deviceId == null) {
-                        System.err.println("deviceId mancante nel messaggio JSON su topic: " + topic);
+                        log("ERROR", "broker", "deviceId mancante nel messaggio JSON su topic: " + topic);
                         return;
                     }
 
@@ -174,12 +193,21 @@ public class MqttService {
                 case dataTopic:
                     deviceId = data.getString("deviceId");
                     if (deviceId == null) {
-                        System.err.println("deviceId mancante nel messaggio JSON su topic: " + topic);
+                        log("ERROR", "broker", "deviceId mancante nel messaggio JSON su topic: " + topic);
                         return;
                     }
                     handleData(deviceId, data);
                     break;
-
+                // topic per ricevere messaggi di log
+                case logTopic:
+                    deviceId = data.getString("deviceId");
+                    String type = data.getString("type");
+                    String msg = data.getString("message");
+                    if (deviceId == null || type == null || msg == null) {
+                        log("ERROR", "broker", "Errore di formattazione nel messaggio di log");
+                        return;
+                    }
+                    log(type, deviceId, msg);
             }
 
         });
@@ -189,9 +217,9 @@ public class MqttService {
     public void publish(String topic, String message) {
         if (client.isConnected()) {
             client.publish(topic, Buffer.buffer(message), MqttQoS.AT_LEAST_ONCE, false, false);
-            System.out.println("Pubblicato su " + topic + ": " + message);
+            log("INFO", "broker", "Pubblicato su " + topic + ": " + message);
         } else {
-            System.err.println("Client MQTT non connesso!");
+            log("ERROR", "broker", "Client MQTT non connesso!");
         }
     }
 
@@ -221,13 +249,12 @@ public class MqttService {
                 .put("params", new JsonObject().put("id", 0).put("on", on));
 
         publish(topic, command.encode());
-        System.out.println("Luce Shelly " + (on ? "accesa" : "spenta") + " su topic: " + topic);
     }
 
     // Handlers dei vari eventi
 
     private void handleTriggered(String deviceId, JsonObject data) {
-        System.out.println("Trigger ricevuto da " + deviceId + ": " + data.encodePrettily());
+        log("INFO", "broker", "Trigger ricevuto da " + deviceId + ": " + data.encodePrettily());
         JsonArray lights = data.getJsonArray("lights");
 
         if (deviceId.equals("videoPlayer-intro") && !introAlreadyTriggered) {
@@ -241,7 +268,6 @@ public class MqttService {
                 JsonObject light = (JsonObject) entry;
                 String id = light.getString("id");
                 String topic = id + "/rpc";
-
                 publishShellyCommand(topic, false);
             });
             return;
@@ -256,7 +282,7 @@ public class MqttService {
     }
 
     private void handleEnded(String deviceId) {
-        System.out.println("Video terminato su " + deviceId);
+        log("INFO", deviceId, "Video terminato");
         if (deviceId.equals("videoPlayer-intro")) {
             if (introAlreadyTriggered) {
                 publish(plafTopic, "ON");
@@ -269,25 +295,32 @@ public class MqttService {
     }
 
     private void handleData(String deviceId, JsonObject data) {
+
+        Boolean online = data.getBoolean("online");
+
+        if (online == null) {
+            log("ERROR", deviceId, "Pacchetto di collegamento errato");
+            return;
+        }
+
         if (deviceId != null) {
             DeviceStatusManager.updateDeviceStatus(deviceId, data);
-            System.out.println("Stato aggiornato per: " + deviceId);
+            log("INFO", deviceId, "Stato aggiornato: " + (online ? "online" : "offline"));
         }
 
-        if (deviceId.contains("audioPlayer")) {
-            System.out.println("Audio player connesso");
-            publish(audioTopic, "ON");
-        }
+        if (online) {
 
-        if (deviceId.contains("plafoniera")) {
-            System.out.println("Plafoniera connessa");
-            publish("bonci/" + deviceId + "/command", "STARTING");
-            // lo manda solo alla plafoniera specifica non a tutte
-        }
+            if (deviceId.contains("audioPlayer")) {
+                publish(audioTopic, "ON");
+            }
 
-        if (deviceId.contains("videoPlayer")) {
-            System.out.println("Video player connesso");
-            lastWakeTime = System.currentTimeMillis();
+            if (deviceId.contains("plafoniera")) {
+                publish("bonci/" + deviceId + "/command", "STARTING");
+            }
+
+            if (deviceId.contains("videoPlayer")) {
+                lastWakeTime = System.currentTimeMillis();
+            }
         }
     }
 
@@ -297,8 +330,8 @@ public class MqttService {
                 publish(audioTopic, "SHUTDOWN");
                 publish(videoTopic, "SHUTDOWN");
                 try {
+                    log("INFO", "broker", "Spegnimento Raspberry Pi in corso...");
                     Runtime.getRuntime().exec("sudo shutdown -h now");
-                    System.out.println("Spegnimento Raspberry Pi in corso...");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -314,7 +347,7 @@ public class MqttService {
                 if (canWakeVideo()) {
                     publish(videoTopic, "WAKE");
                 } else {
-                    System.out.println("Wake bloccato sui video, cooldown ancora in corso");
+                    log("INFO", "broker", "Wake bloccato sui video, cooldown ancora in corso");
                 }
                 break;
             case "start_presentation":
@@ -325,7 +358,7 @@ public class MqttService {
                         publish(videoTopic, "SLEEP");
                         Thread.sleep(20000);
                         publish(videoTopic, "WAKE");
-                    } catch(InterruptedException e) {
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }).start();
@@ -341,106 +374,42 @@ public class MqttService {
                         e.printStackTrace();
                     }
                 }).start();
-                System.out.println("Presentazione avviata: luce generale accesa, audio acceso, video riavviati");
                 break;
             default:
-                System.err.println("Comando sconosciuto su topic 'control': " + command);
+                log("ERROR", "broker", "Comando sconosciuto su topic 'control': " + command);
         }
     }
 
     public void handleGeneralLight(String command) {
-        if (command == null) {
-            System.err.println("Comando mancante per luce generale");
-            return;
+        if (command == null || !lightCommands.contains(command)) {
+            log("ERROR", "broker", "Comando mancante o non valido per luce generale");
+        } else {
+            publish(plafTopic, command);
         }
 
-        switch (command) {
-            case "ON":
-                publish(plafTopic, "ON");
-                System.out.println("Luce generale accesa");
-                break;
-            case "OFF":
-                publish(plafTopic, "OFF");
-                System.out.println("Luce generale spenta");
-                break;
-            case "LIGHT_UP":
-                publish(plafTopic, "LIGHT_UP");
-                System.out.println("Luce generale in aumento");
-                break;
-            case "LIGHT_DOWN":
-                publish(plafTopic, "LIGHT_DOWN");
-                System.out.println("Luce generale in diminuzione");
-                break;
-            case "WARM_UP":
-                publish(plafTopic, "WARM_UP");
-                System.out.println("Luce generale calda");
-                break;
-            case "COLD_UP":
-                publish(plafTopic, "COLD_UP");
-                System.out.println("Luce generale fredda");
-                break;
-            default:
-                System.err.println("Comando sconosciuto per luce generale: " + command);
-        }
     }
 
     public void handleGeneralAudio(String command) {
-        if (command == null) {
-            System.err.println("Comando mancante per audio");
-            return;
-        }
-
-        switch (command) {
-            case "ON":
-                publish(audioTopic, "ON");
-                System.out.println("Audio acceso");
-                break;
-            case "OFF":
-                publish(audioTopic, "OFF");
-                System.out.println("Audio spento");
-                break;
-            case "AUDIO_UP":
-                publish(audioTopic, "VOLUME_UP");
-                System.out.println("Audio in aumento");
-                break;
-            case "AUDIO_DOWN":
-                publish(audioTopic, "VOLUME_DOWN");
-                System.out.println("Audio in diminuzione");
-                break;
-            case "SHUTDOWN":
-                publish(audioTopic, "SHUTDOWN");
-                System.out.println("Dispositivo audio spento");
-                break;
-            default:
-                System.err.println("Comando sconosciuto per audio: " + command);
+        if (command == null || !audioCommands.contains(command)) {
+            log("ERROR", "broker", "Comando mancante o non valido per audio");
+        } else {
+            publish(audioTopic, command);
         }
     }
 
     public void handleGeneralVideo(String command) {
-        if (command == null) {
-            System.err.println("Comando mancante per video");
-            return;
-        }
-
-        switch (command) {
-            case "SLEEP":
-                publish(videoTopic, "SLEEP");
-                break;
-            case "WAKE":
-                if (canWakeVideo()) {
-                    publish(videoTopic, "WAKE");
-                } else {
-                    System.out.println("Wake bloccato sui video, cooldown ancora in corso");
-                }
-                break;
-            default:
-                System.err.println("Comando sconosciuto per video: " + command);
+        if (command == null || !videoCommands.contains(command)) {
+            log("ERROR", "broker", "Comando mancante o non valido per video");
+        } else if (command.equals("WAKE") && !canWakeVideo()) {
+            log("INFO", "broker", "Wake bloccato sui video, cooldown ancora in corso");
+        } else {
+            publish(videoTopic, command);
         }
     }
 
     public void handleDeviceCommand(String deviceId, String command) {
         if (deviceId == null || command == null) {
-            System.err.println("ID dispositivo o comando mancante");
+            log("ERROR", "broker", "ID dispositivo o comando mancante");
             return;
         }
 
@@ -452,10 +421,9 @@ public class MqttService {
         }
 
         if (deviceId.contains("videoPlayer") && command.equals("WAKE") && !canWakeVideo()) {
-            System.out.println("Wake bloccato su " + deviceId + ", cooldown ancora in corso");
+            log("INFO", "broker", "Wake bloccato su " + deviceId + ", cooldown ancora in corso");
             return;
         }
         publish("bonci/" + deviceId + "/command", command);
-        System.out.println("Comando " + command + " inviato a " + deviceId + ".");
     }
 }

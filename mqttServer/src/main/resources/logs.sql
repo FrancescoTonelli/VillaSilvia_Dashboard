@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS logs (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  type      TEXT    NOT NULL,
+  timestamp INTEGER NOT NULL,
+  device    TEXT    NOT NULL,
+  message   TEXT    NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS trim_logs AFTER INSERT ON logs
+BEGIN
+  DELETE FROM logs
+   WHERE id NOT IN (
+     SELECT id FROM logs ORDER BY timestamp DESC LIMIT 300
+   );
+END;

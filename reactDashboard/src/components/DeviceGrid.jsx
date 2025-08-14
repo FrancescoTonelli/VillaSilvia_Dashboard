@@ -1,8 +1,10 @@
 import DeviceCard from './DeviceCard'
 
-export default function DeviceGrid({ devices, onSelect }) {
+export default function DeviceGrid({ devices, onSelect, onLog }) {
   if (!devices || devices.length === 0) {
-    return <div className="device-grid-empty">Nessun device disponibile.</div>;
+    return <div className="device-grid-empty">
+      Nessun device disponibile.
+    </div>;
   }
   return (
     <div className="device-grid">
@@ -13,6 +15,8 @@ export default function DeviceGrid({ devices, onSelect }) {
           onClick={() => { if (device.online) onSelect(device.id); }}
         />
       ))}
+      <div className="foot-spacer" />
+      <button onClick={onLog} className='log-button'>Mostra Log</button>
       <div className="foot-spacer" />
     </div>
   );
