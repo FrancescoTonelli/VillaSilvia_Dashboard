@@ -274,3 +274,88 @@ export function SoundDownIcon({
     </svg>
   );
 }
+
+export function LogIcon({
+  width = 35,
+  height = width,
+  stroke = '#ffffff',
+  className = '',
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      width={width}
+      height={height}
+      className={className}
+      fill="none"
+    >
+      <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+      <g id="SVGRepo_iconCarrier">
+        <circle
+          cx="6.82"
+          cy="17.18"
+          r="5.32"
+          stroke={stroke}
+          strokeWidth="1.88"
+          strokeMiterlimit="10"
+          fill="none"
+        />
+        <circle
+          cx="6.82"
+          cy="17.18"
+          r="2.35"
+          stroke={stroke}
+          strokeWidth="1.88"
+          strokeMiterlimit="10"
+          fill="none"
+        />
+        <path
+          d="M20.94,10.59,10.59,20.94a5.32,5.32,0,0,0-7.53-7.53L13.41,3.06a5.32,5.32,0,0,1,7.53,7.53Z"
+          stroke={stroke}
+          strokeWidth="1.88"
+          strokeMiterlimit="10"
+          fill="none"
+        />
+        <line
+          x1="9.35"
+          y1="12.41"
+          x2="12.79"
+          y2="8.97"
+          stroke={stroke}
+          strokeWidth="1.88"
+          strokeMiterlimit="10"
+        />
+        <line
+          x1="21.94"
+          y1="4.36"
+          x2="18.18"
+          y2="8.12"
+          stroke={stroke}
+          strokeWidth="1.88"
+          strokeMiterlimit="10"
+        />
+        <line
+          x1="13.73"
+          y1="13.18"
+          x2="17.06"
+          y2="9.85"
+          stroke={stroke}
+          strokeWidth="1.88"
+          strokeMiterlimit="10"
+        />
+        <line
+          x1="15.76"
+          y1="5.41"
+          x2="19.06"
+          y2="2.12"
+          stroke={stroke}
+          strokeWidth="1.88"
+          strokeMiterlimit="10"
+        />
+      </g>
+    </svg>
+  );
+}
+

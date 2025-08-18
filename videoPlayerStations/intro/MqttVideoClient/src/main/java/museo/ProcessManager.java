@@ -6,6 +6,11 @@ import java.util.concurrent.TimeUnit;
 public class ProcessManager {
 
     private Process videoPlayerProcess;
+    private MqttHandler mqtt;
+
+    public ProcessManager(MqttHandler mqttHandler) {
+        this.mqtt = mqttHandler;
+    }
 
     // Metodo usato per avviare l'applicazione video e mandare il Raspberry Pi in
     // modalità risparmio energetico (solo se non è il primo avvio)
@@ -13,7 +18,7 @@ public class ProcessManager {
     public void startPlayVideoApp(Boolean first) {
 
         if (videoPlayerProcess != null && videoPlayerProcess.isAlive()) {
-            System.out.println("videoPlayer è già in esecuzione");
+            mqtt.log("INFO", "videoPlayer già in esecuzione");
             return;
         }
 
@@ -35,9 +40,9 @@ public class ProcessManager {
                     "/bin/bash", "/home/villasilvia/Desktop/condivisa/videoPlayer/main-app/target/distribution/run.sh")
                     .inheritIO()
                     .start();
-            System.out.println("Avviato playvideo-app via script");
+            mqtt.log("INFO", "Avviato playvideo-app");
         } catch (IOException e) {
-            System.err.println("Errore avvio playvideo-app: " + e.getMessage());
+            mqtt.log("ERROR", "Errore avvio playvideo-app: " + e.getMessage());
         }
 
     }
@@ -46,13 +51,13 @@ public class ProcessManager {
     // modalità risparmio energetico
     public void stopPlayVideoApp() {
         if (videoPlayerProcess != null && videoPlayerProcess.isAlive()) {
-            System.out.println("Tentativo di chiusura playvideo-app...");
+            mqtt.log("INFO", "Tentativo di chiusura playvideo-app...");
             killAllRelatedProcesses();
             // Manda il Raspberry Pi in risparmio energetico
             executeScript("/home/villasilvia/Desktop/condivisa/videoPlayer/MqttVideoClient/sleep.sh");
 
         } else {
-            System.out.println("Nessun processo attivo da fermare");
+            mqtt.log("INFO", "Nessun processo da fermare");
         }
 
         videoPlayerProcess = null;
@@ -78,9 +83,10 @@ public class ProcessManager {
                     System.err.println("Errore eseguendo: " + cmd + " (codice " + exitCode + ")");
                 }
             } catch (IOException | InterruptedException e) {
-                System.err.println("Eccezione durante: " + cmd + " -> " + e.getMessage());
+                mqtt.log("ERROR", "Eccezione durante: " + cmd + " -> " + e.getMessage());
             }
         }
+        mqtt.log("INFO", "Tutti i processi attivi sono stati bloccati");
     }
 
     public void executeScript(String path) {
@@ -90,7 +96,7 @@ public class ProcessManager {
             Process process = pb.start();
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                System.err.println("Errore eseguendo lo script: " + path);
+                mqtt.log("ERROR", "Errore eseguendo lo script: " + path);
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();

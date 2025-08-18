@@ -20,7 +20,7 @@ import java.io.IOException;
 
 public class Main extends Application {
 
-    private final String wifiSSID = "Bonci_WiFi";      
+    private final String wifiSSID = "Bonci_WiFi";
     private final String wifiPassword = "BonciRoom1";
 
     private Vertx vertx;
@@ -29,9 +29,11 @@ public class Main extends Application {
 
     private final String brokerHost = "192.168.0.2";
     private final int brokerPort = 1883;
+    private final String deviceId = "audioPlayer";
 
     private final String commandTopic = "bonci/audioPlayer/command"; // broker -> audioPlayer
     private final String dataTopic = "bonci/online_data"; // audioPlayer -> broker
+    private final String logTopic = "bonci/log"; // canale log
 
     @Override
     public void start(Stage stage) {
@@ -42,7 +44,7 @@ public class Main extends Application {
     private void connectToBroker() {
         JsonObject lwt = new JsonObject()
                 .put("online", false)
-                .put("deviceId", "audioPlayer")
+                .put("deviceId", deviceId)
                 .put("os", System.getProperty("os.name"))
                 .put("timestamp", System.currentTimeMillis());
 
@@ -70,7 +72,7 @@ public class Main extends Application {
                 return true;
             }
             return false;
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
@@ -85,10 +87,10 @@ public class Main extends Application {
             }
 
             Process connect = Runtime.getRuntime().exec(
-                    new String[]{"bash", "-c", "nmcli dev wifi connect '" + wifiSSID + "' password '" + wifiPassword + "'"});
+                    new String[] { "bash", "-c",
+                            "nmcli dev wifi connect '" + wifiSSID + "' password '" + wifiPassword + "'" });
             connect.waitFor();
 
-    
             if (checkWifi()) {
                 return true;
             } else {
@@ -118,7 +120,7 @@ public class Main extends Application {
 
                 JsonObject onlinePayload = new JsonObject()
                         .put("online", true)
-                        .put("deviceId", "audioPlayer")
+                        .put("deviceId", deviceId)
                         .put("os", System.getProperty("os.name"))
                         .put("timestamp", System.currentTimeMillis());
 
@@ -133,7 +135,7 @@ public class Main extends Application {
                     String topic = message.topicName();
                     String payload = message.payload().toString();
 
-                    System.out.println("Messaggio ricevuto: " + topic + " → " + payload);
+                    log("INFO", "Messaggio ricevuto: " + payload + " su topic " + topic);
 
                     Platform.runLater(() -> handleMessage(payload));
                 });
@@ -162,23 +164,24 @@ public class Main extends Application {
             case "PAUSE":
                 pause();
                 break;
-            case "VOLUME_UP":
+            case "AUDIO_UP":
                 volume_up();
                 break;
-            case "VOLUME_DOWN":
+            case "AUDIO_DOWN":
                 volume_down();
                 break;
             case "SHUTDOWN":
                 shutdown();
                 break;
             default:
-                System.out.println("Messaggio non riconosciuto: " + payload);
+                log("INFO", "Messaggio non riconosciuto: " + payload);
         }
     }
 
     private void on() {
         if (player.getStatus() == MediaPlayer.Status.STOPPED) {
             player.start("test.mp3");
+            log("INFO", "Audio in riproduzione");
         } else if (player.getStatus() == MediaPlayer.Status.PAUSED) {
             player.resume();
         }
@@ -187,6 +190,7 @@ public class Main extends Application {
     private void off() {
         if (player.getStatus() == MediaPlayer.Status.PLAYING) {
             player.stop();
+            log("INFO", "Audio spento");
         }
     }
 
@@ -200,6 +204,7 @@ public class Main extends Application {
         double currentVolume = player.getVolume();
         if (currentVolume < 1.0) {
             player.setVolume(currentVolume + 0.1);
+            log("INFO", "Audio in aumento. Volume: " + player.getVolume());
         }
 
     }
@@ -208,6 +213,7 @@ public class Main extends Application {
         double currentVolume = player.getVolume();
         if (currentVolume > 0.1) {
             player.setVolume(currentVolume - 0.1);
+            log("INFO", "Audio in diminuzione. Volume: " + player.getVolume());
         }
 
     }
@@ -227,6 +233,31 @@ public class Main extends Application {
             Process process = Runtime.getRuntime().exec("sudo shutdown -h now");
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public void log(String type, String message) {
+        if (client.isConnected()) {
+
+            client.publish(
+                    logTopic,
+                    Buffer.buffer(
+                            new JsonObject()
+                                    .put("deviceId", deviceId)
+                                    .put("type", type)
+                                    .put("message", message)
+                                    .encode()),
+                    MqttQoS.AT_LEAST_ONCE,
+                    false,
+                    false);
+
+            if (type.equals("ERROR")) {
+                System.err.println(message);
+            } else {
+                System.out.println(message);
+            }
+        } else {
+            System.err.println("MQTT non connesso (log)");
         }
     }
 

@@ -36,13 +36,13 @@ export default function DevicesPage() {
 
   return (
     <div className='device-page'>
-      <DeviceMenu />
+      <DeviceMenu onLog={() => setShowLog(true)} />
 
       {selected && (
         <DeviceDetail deviceId={selected} onClose={() => setSelected(null)} />
       )}
       {!selected && !showLog && (
-        <DeviceGrid devices={devices} onSelect={setSelected} onLog={() => setShowLog(true)} />
+        <DeviceGrid devices={devices} onSelect={setSelected} />
       )}
       { showLog && (
         <LogViewer onClose={() => setShowLog(false)} />  

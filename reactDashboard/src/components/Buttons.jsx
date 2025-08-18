@@ -5,7 +5,8 @@ import {
     SoundUpIcon, 
     SoundDownIcon,
     ColdIcon,
-    HotIcon
+    HotIcon,
+    LogIcon
  } from '../assets/Icons';
 
 function ButtonOnOff({ onClick, classNameStatus, label = "ON" }) {
@@ -90,6 +91,17 @@ export function ButtonHot({ onClick }) {
                 <HotIcon fill="#ffffff" />
             </button>
             <p>CALDA</p>
+        </div>
+    );
+}
+
+export function ButtonLog({ onClick }) {
+    return (
+        <div className="button-description">
+            <button onClick={onClick} className={`button-command button-log`}>
+                <LogIcon/>
+            </button>
+            <p>MOSTRA LOG</p>
         </div>
     );
 }

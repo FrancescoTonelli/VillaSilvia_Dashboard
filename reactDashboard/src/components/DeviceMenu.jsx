@@ -4,12 +4,13 @@ import {
   ButtonLightDown,
   ButtonLightUp,
   ButtonCold,
-  ButtonHot
+  ButtonHot,
+  ButtonLog
 } from '../components/Buttons';
 import { sendGlobalCommand, sendGeneralLightCommand, sendVideoGeneralCommand } from '../api/Api';
 import MaintenancePanel from './MaintenancePanel';
 
-export default function DeviceMenu({ devices, onSelect }) {
+export default function DeviceMenu({ onLog }) {
 
   return (
     <div className="device-menu">
@@ -40,6 +41,13 @@ export default function DeviceMenu({ devices, onSelect }) {
           <div className="controls-row">
             <ButtonOn onClick={() => sendVideoGeneralCommand('WAKE')} />
             <ButtonOff onClick={() => sendVideoGeneralCommand('SLEEP')} />
+          </div>
+      </div>
+
+      <div className='control-panel'>
+          <h2>Log</h2>
+          <div className="controls-row">
+            <ButtonLog onClick={() => onLog()}/>
           </div>
       </div>
 

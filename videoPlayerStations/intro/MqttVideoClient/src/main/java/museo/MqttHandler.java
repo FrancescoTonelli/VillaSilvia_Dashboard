@@ -26,12 +26,13 @@ public class MqttHandler {
     private final String privateCommandTopic = "bonci/" + deviceId + "/command"; // borker -> videoPlayer (private)
     private final String eventTopic = "bonci/videoPlayer/event"; // videoPlayer -> broker
     private final String dataTopic = "bonci/online_data"; // videoPlayer -> broker
+    private final String logTopic = "bonci/log"; // canale log
 
     private boolean isAwaken;
 
     public MqttHandler(Vertx vertx) {
         this.vertx = vertx;
-        this.manager = new ProcessManager();
+        this.manager = new ProcessManager(this);
 
         JsonObject lwt = new JsonObject()
                 .put("online", false)
@@ -201,7 +202,7 @@ public class MqttHandler {
         client.publishHandler(msg -> {
             String payload = msg.payload().toString();
             String topic = msg.topicName();
-            System.out.println("Ricevuto comando MQTT: " + payload + "su topic " + topic);
+            log("INFO", "Ricevuto comando MQTT: " + payload + " su topic " + topic);
 
             if (topic.equals(commandTopic) || topic.equals(privateCommandTopic)) {
                 switch (payload) {
@@ -209,6 +210,7 @@ public class MqttHandler {
                         try {
                             Process process = Runtime.getRuntime().exec("sudo shutdown -h now");
                         } catch (Exception e) {
+                            log("ERROR", e.getMessage());
                             e.printStackTrace();
                         }
                         break;
@@ -230,17 +232,44 @@ public class MqttHandler {
                             }, false, res -> {
                             });
                         } else {
-                            System.out.println("WAKE bloccato, dispositivo già attivo");
+                            log("INFO", "WAKE bloccato, dispositivo già attivo");
                         }
                         break;
 
                     default:
-                        System.out.println("Comando non ricoosciuto");
+                        log("ERROR", "Comando non riconosciuto");
                         break;
                 }
             }
 
         });
+    }
+
+    public void log(String type, String message) {
+        if (client.isConnected()) {
+
+            client.publish(
+                    logTopic,
+                    Buffer.buffer(
+                        new JsonObject()
+                            .put("deviceId", deviceId)
+                            .put("type", type)
+                            .put("message", message)
+                            .encode()
+                    ),
+                    MqttQoS.AT_LEAST_ONCE,
+                    false,
+                    false);
+
+            if (type.equals("ERROR")) {
+                System.err.println(message);
+            }
+            else {
+                System.out.println(message);
+            }
+        } else {
+            System.err.println("MQTT non connesso (log)");
+        }
     }
 
 }

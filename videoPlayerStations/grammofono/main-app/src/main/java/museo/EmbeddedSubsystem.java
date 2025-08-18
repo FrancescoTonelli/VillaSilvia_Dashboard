@@ -26,7 +26,7 @@ public class EmbeddedSubsystem {
     }
 
     public void spawnSonarDetector(Runnable task) throws Exception {
-        detector = new DistanceDetector(pi4j, 3, 15, task);
+        detector = new DistanceDetector(pi4j, 3, 13, task);
         detector.start();
     }
 

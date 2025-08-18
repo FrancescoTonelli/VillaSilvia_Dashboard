@@ -43,7 +43,7 @@ public class DistanceDetector extends Thread {
 
 			while (true) {
 				double d = getDistance();
-				// System.out.println(d);
+				System.out.println(d);
 
 				if (d < maxDist && d > minDist) {
 					validCount++;

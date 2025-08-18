@@ -10,7 +10,6 @@ public class Main {
 
         MqttHandler mqttHandler = new MqttHandler(vertx);
         WebServer webServer = new WebServer(vertx, mqttHandler);
-
+        
     }
-
 }
