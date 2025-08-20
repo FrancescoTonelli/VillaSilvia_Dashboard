@@ -38,7 +38,7 @@ export default function DevicesPage() {
     <div className='device-page'>
       <DeviceMenu onLog={() => setShowLog(true)} />
 
-      {selected && (
+      {selected && !showLog && (
         <DeviceDetail deviceId={selected} onClose={() => setSelected(null)} />
       )}
       {!selected && !showLog && (
