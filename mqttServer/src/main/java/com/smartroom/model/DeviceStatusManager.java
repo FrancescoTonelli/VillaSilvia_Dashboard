@@ -3,6 +3,7 @@ package  com.smartroom.model;
 import io.vertx.core.json.JsonObject;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.HashMap;
 import java.util.Map;
 
 public class DeviceStatusManager {
@@ -26,7 +27,7 @@ public class DeviceStatusManager {
     }
 
     public static Map<String, JsonObject> getAllDevices() {
-        return devices;
+        return new HashMap<>(devices);
     }
 
     public static JsonObject getDevice(String deviceId) {

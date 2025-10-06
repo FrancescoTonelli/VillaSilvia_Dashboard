@@ -10,7 +10,7 @@ public class Main {
         Vertx vertx = Vertx.vertx();
 
         MqttService mqttService = 
-            new MqttService(vertx, "localhost", 1883); // Avvia MQTT
+            new MqttService(vertx, "192.168.0.2", 1883); // Avvia MQTT
 
         WebServer.start(vertx, mqttService); // Avvia HTTP
     }

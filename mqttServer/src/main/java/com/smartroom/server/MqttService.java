@@ -367,7 +367,7 @@ public class MqttService {
                 new Thread(() -> {
                     try {
                         for (int i = 0; i < 10; i++) {
-                            publish(audioTopic, "VOLUME_UP");
+                            publish(audioTopic, "AUDIO_UP");
                             Thread.sleep(500);
                         }
                     } catch (InterruptedException e) {

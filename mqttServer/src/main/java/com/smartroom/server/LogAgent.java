@@ -13,6 +13,9 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.function.Consumer;
+import java.util.Map;
+
+import com.smartroom.model.DeviceStatusManager;
 
 public class LogAgent {
     private JDBCClient client;
@@ -133,5 +136,9 @@ public class LogAgent {
                 }
             }
         );
+
+        if (!DeviceStatusManager.getAllDevices().containsKey(device) && !device.equals("broker")) {
+            DeviceStatusManager.updateDeviceStatus(device, new JsonObject().put("online", true));
+        }
     }
 }
